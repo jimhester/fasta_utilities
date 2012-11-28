@@ -79,6 +79,7 @@ sub update{
    return;
  }
  if($self->{FILE} eq "*main::ARGV" and $self->{fileName} ne $ARGV){
+   return if $ARGV =~ /\|/;
    if(not $self->{fileName}){
      $self->{totalStart} = time;
      $self->{fileName} = $ARGV;
