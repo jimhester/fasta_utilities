@@ -38,7 +38,6 @@ my $count=0;
 my $name;
 print join("\t","file","contig","length","min","mean","median","max","sd")."\n";
 for my $filename(@ARGV){
-
   open READS, "samtools view $filename |";
   $read_size=0;
   my %read_sizes;
@@ -93,7 +92,6 @@ sub print_depth{
   my ($cov,$chr) = @_;
   my $coverage=0;
   my @depths;
-  use Data::Dumper;
   for my $depth(keys %{ $cov }){
     push @depths, (($depth) x $cov->{$depth});
   }

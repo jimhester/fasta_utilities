@@ -30,6 +30,8 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # filter_align.pl
 ###############################################################################
 
+use read_sam;
+
 use List::Util qw(sum);
 
 # filter sam based on flag/name/sequence/cigar
@@ -38,7 +40,7 @@ use List::Util qw(sum);
 my $region = '';
 $region = $filter{region} if exists $filter{region};
 
-@ARGV = map { s/(.*\.bam)\s*$/samtools view -h $1 $region|/;$_ } @ARGV;
+#@ARGV = map { s/(.*\.bam)\s*$/samtools view -h $1 $region|/;$_ } @ARGV;
 
 my %function_map = (  query               =>   \&filter_query,
                       rname               =>   \&filter_rname,
@@ -57,54 +59,6 @@ my %function_map = (  query               =>   \&filter_query,
                       length              =>   \&filter_flag,
                    );
 
-package Align;
-use Moose;
-
-has qname => ( is => 'rw' , isa => 'Str');
-has flag => ( is => 'rw', isa => 'Str');
-has rname => ( is => 'rw', isa => 'Str');
-has position => ( is => 'rw', isa => 'Int');
-has mapq => ( is => 'rw', isa => 'Int');
-has cigar => ( is => 'rw', isa => 'Str');
-has rnext => ( is => 'rw', isa => 'Str');
-has pnext => ( is => 'rw', isa => 'Int');
-has tlen => ( is => 'rw', isa => 'Int');
-has sequence => ( is => 'rw', isa => 'Str');
-has quality => ( is => 'rw', isa => 'ArrayRef[Int]');
-has optional => ( is => 'rw', isa => 'ArrayRef[Str]');
-
-sub parse_line{
-  my $self = shift;
-  my $line = shift;
-  my @fields = qw( qname flag rname position mapq cigar rnext pnext tlen sequence);
-  my $itr = 0;
-  my %ref;
-  my @options;
-  for my $value(split /[\t\n]/, $line){
-    if($itr <= $#fields){
-      $ref{$fields[$itr]}=$value;
-    } elsif($itr == $#fields+1){
-      $ref{quality}=[ map { $_ - 64 } unpack "c*",$value ];
-    } else {
-      push @options, $value;
-    }
-    $itr++;
-  }
-  $ref{optional}=\@options;
-  return Align->new(\%ref);
-}
-sub end{
-  my ($read,$cigar) = @_;
-  my $end = $read->position;
-  while($cigar =~ /([[0-9]+)([MIDNSHPX=])/g){
-    my($num,$operation)=($1,$2);
-    if($operation =~ /[MDN=X]/){
-      $end+=$num;
-    }
-  }
-  return $end;
-}
-__PACKAGE__->meta->make_immutable;
 
 no Moose;
 
@@ -112,22 +66,19 @@ package main;
 
 use JimBar;
 
-my $bar = JimBar->new();
-
+#my $bar = JimBar->new();
 #use Data::Dumper;
-while(<>){
-  if(/^@/){
-    print;
-  } else {
-    my $align= Align->parse_line($_);
-    my $count=0;
-    for my $test(keys %filter){
-      $count++ if &{$function_map{$test}}($align);
-    }
-    if($strict and $count == keys %filter or not $strict and $count){
-      print;
-    } 
+my $sam = read_sam->new();
+my $header = $sam->readline;
+print $header->raw;
+while(my $align = $sam->readline){
+  my $count=0;
+  for my $test(keys %filter){
+    $count++ if &{$function_map{$test}}($align);
   }
+  if($strict and $count == keys %filter or not $strict and $count){
+    print $align->raw;
+  } 
 }
 sub filter_query{
   my $read = shift;
