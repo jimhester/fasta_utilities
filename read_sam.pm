@@ -17,26 +17,26 @@ around BUILDARGS => sub {
 };
 sub BUILD {
   my $self = shift;
-  unless ( $self->fh ) {
-    @{ $self->{files} } = map { s/(.*\.bam)\s*$/samtools view -h $1|/;$_ } @{ $self->files }; #pipe bam files through samtools
-    $self->{files} = [ '-' ] unless @{ $self->files }; #if no files read from stdin
+  unless ( $self->{fh} ) {
+    @{ $self->{files} } = map { s/(.*\.bam)\s*$/samtools view -h $1|/;$_ } @{ $self->{files} }; #pipe bam files through samtools
+    $self->{files} = [ '-' ] unless @{ $self->{files} }; #if no files read from stdin
   }
 }
 sub readline {
   my $self = shift;
-  if(not $self->fh or eof $self->fh){
-    return unless @{ $self->files };
-    my $file = shift @{ $self->files };
+  if(not $self->{fh} or eof $self->{fh}){
+    return unless @{ $self->{files} };
+    my $file = shift @{ $self->{files} };
     open my $fh, $file or die "$!: Could not open $file\n";
     $self->{fh} = $fh;
   }
-  my $line = readline $self->fh;
+  my $line = readline $self->{fh};
   my $headers;
   while($line =~ /^@/){
     $headers .= $line;
-    $line = readline $self->fh;
+    $line = readline $self->{fh};
   }
-  return sam_header->new($headers) if($headers and not $self->alignments_only);
+  return sam_header->new($headers) if($headers and not $self->{alignments_only});
   return $self->parse_line($line);
 }
 sub parse_line{
@@ -128,10 +128,10 @@ has optional => ( is => 'rw', isa => 'ArrayRef[Str]');
 has raw => (is => 'ro', isa => 'Str');
 
 sub end{
-  my ($self,$cigar) = @_;
+  my $self = shift;
   return $self->{end} if exists $self->{end};
   my $end = $self->position;
-  while($cigar =~ /([[0-9]+)([MIDNSHPX=])/g){
+  while($self->{cigar} =~ /([0-9]+)([MIDNSHPX=])/g){
     my($num,$operation)=($1,$2);
     if($operation =~ /[MDN=X]/){
       $end+=$num;
