@@ -1,8 +1,6 @@
 package read_sam;
 use Moose;
 
-local @ARGV;
-
 has fh => ( is => 'ro', isa => 'GlobRef');
 has files => ( is => 'ro', default => sub { \@ARGV }, isa => 'ArrayRef[Str]');
 has alignments_only => (is => 'ro', default => 0, isa => 'Bool');
@@ -11,13 +9,7 @@ around BUILDARGS => sub {
   my $orig = shift;
   my $class = shift;
   if ( @_ == 1 && ! ref $_[0] ) {
-    if (ref $_[0] eq "GLOB") { #filehandle
-      return $class->$orig(fh => $_[0]);
-    } elsif(ref $_[0] eq "ARRAY"){ #array of files
-      return $class->$orig(files => $_[0]);
-    } else { #single file
-      return $class->$orig(files => [ $_[0] ]);
-    }
+    return $class->$orig(files => [ $_[0] ]);
   }
   else {
       return $class->$orig(@_);
@@ -27,12 +19,17 @@ sub BUILD {
   my $self = shift;
   unless ( $self->fh ) {
     @{ $self->{files} } = map { s/(.*\.bam)\s*$/samtools view -h $1|/;$_ } @{ $self->files }; #pipe bam files through samtools
-    @ARGV = @{ $self->files };
-    $self->{fh} = \*ARGV;
+    $self->{files} = [ '-' ] unless @{ $self->files }; #if no files read from stdin
   }
 }
 sub readline {
   my $self = shift;
+  if(not $self->fh or eof $self->fh){
+    return unless @{ $self->files };
+    my $file = shift @{ $self->files };
+    open my $fh, $file or die "$!: Could not open $file\n";
+    $self->{fh} = $fh;
+  }
   my $line = readline $self->fh;
   my $headers;
   while($line =~ /^@/){

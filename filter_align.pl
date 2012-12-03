@@ -40,8 +40,6 @@ use List::Util qw(sum);
 my $region = '';
 $region = $filter{region} if exists $filter{region};
 
-#@ARGV = map { s/(.*\.bam)\s*$/samtools view -h $1 $region|/;$_ } @ARGV;
-
 my %function_map = (  query               =>   \&filter_query,
                       rname               =>   \&filter_rname,
                       position            =>   \&filter_position,
@@ -66,8 +64,6 @@ package main;
 
 use JimBar;
 
-#my $bar = JimBar->new();
-#use Data::Dumper;
 my $sam = read_sam->new();
 my $header = $sam->readline;
 print $header->raw;
