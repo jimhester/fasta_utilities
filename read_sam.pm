@@ -1,5 +1,5 @@
 package read_sam;
-use Moose;
+use Mouse;
 
 has fh => ( is => 'ro', isa => 'GlobRef');
 has files => ( is => 'ro', default => sub { \@ARGV }, isa => 'ArrayRef[Str]');
@@ -61,8 +61,11 @@ sub parse_line{
   $ref{raw}=$line;
   return sam_alignment->new(\%ref);
 }
+
+__PACKAGE__->meta->make_immutable;
+
 package sam_header;
-use Moose;
+use Mouse;
 
 has raw => ( is => 'ro', isa => 'Str');
 has tags => ( is => 'rw', isa => 'HashRef[ArrayRef[HashRef[Str]]]');
@@ -110,10 +113,12 @@ sub lines{
     }
   }
 }
-package sam_alignment;
-use Moose;
+__PACKAGE__->meta->make_immutable;
 
-has qname => ( is => 'rw' , isa => 'Str');
+package sam_alignment;
+use Mouse;
+
+has qname => ( is => 'rw', isa => 'Str' );
 has flag => ( is => 'rw', isa => 'Str');
 has rname => ( is => 'rw', isa => 'Str');
 has position => ( is => 'rw', isa => 'Int');
@@ -152,6 +157,8 @@ sub string{
     $self->sequence, pack("c*", map { $_ + 64 } @{ $self->quality }), 
     @{ $self->optional });
 }
+
 __PACKAGE__->meta->make_immutable;
 
+use namespace::autoclean;
 1;
