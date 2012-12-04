@@ -77,6 +77,7 @@ sub next_seq{
      defined ($h2 = readline $self->{fh}) and 
      defined ($quality = readline $self->{fh})){
     $header =~ s/^@//; #remove @ if it exists
+    chomp $header; chomp $sequence; chomp $quality;
     $seq = fastq->new($header,$sequence,$quality);
     return $seq;
   } else {
