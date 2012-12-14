@@ -28,9 +28,9 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
 # formatFasta.pl
 ###############################################################################
-use readFastx;
+use ReadFastx;
 
-my $file = readFastx->new();
+my $file = ReadFastx->new();
 
 while(my $seq = $file->next_seq){
   $seq->print(undef, $width);

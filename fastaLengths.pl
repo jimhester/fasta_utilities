@@ -33,40 +33,6 @@ my $fastx = readFastx->new();
 while(my $seq = $fastx->next_seq){
   print $seq->header . "\t" . length($seq->sequence) . "\n";
 }
-#local $/=\1;
-#my $firstChar =<>;
-#if($firstChar eq ">"){
-#  procFasta();
-#} 
-#elsif($firstChar eq "@"){
-#  procFastq();
-#}
-#else{
-#  die "not a fasta or fastq file";
-#}
-#sub procFasta{
-#  local $/ = ">";
-#  while(<>){
-#    chomp;
-#    if(/^(.*?)\n(.*)$/s){
-#      my ($title, $sequence) = ($1,$2);
-#      $sequence =~ tr/\n//d;
-#      print "$title\t" . length($sequence) . "\n";
-#    }
-#  }
-#}
-#sub procFastq{
-#  local $/ = "@";
-#  while(<>){
-#    chomp;
-#    if(/^(.*?)\n(.*?)\n\+.*?\n(.*?)\n$/s){
-#      my ($title, $sequence) = ($1,$2);
-#      $sequence =~ tr/\n//d;
-#      print "$title\t" . length($sequence) . "\n";
-#    }
-#  }
-#}
-
 
 ###############################################################################
 # Help Documentation

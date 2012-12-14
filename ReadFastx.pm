@@ -23,7 +23,6 @@ around BUILDARGS => sub {
 sub BUILD {
   my $self = shift;
   unless ($self->{fh}) {
-
     #automatically unzip gzip and bzip files
     @{$self->{files}} = map {
       s/(.*\.gz)\s*$/pigz -dc < $1|/;
@@ -35,11 +34,6 @@ sub BUILD {
     $self->{files} = ['-'] unless @{$self->{files}};
   }
   $self->_set_fh(shift @{$self->{files}});
-  my $first_char = getc $self->{fh};
-  $self->{reader} =
-      $first_char eq ">" ? sub { $self->_read_fasta }
-    : $first_char eq "@" ? sub { $self->_read_fastq }
-    :                      croak "Not a fasta or fastq file, $first_char is not > or @";
 }
 
 sub next_seq {
@@ -52,6 +46,11 @@ sub _set_fh {
   $self->{current_file} = $file;
   open my $fh, $file or croak "$!: Could not open $file\n";
   $self->{fh} = $fh;
+  my $first_char = getc $self->{fh};
+  $self->{reader} =
+      $first_char eq ">" ? sub { $self->_read_fasta }
+    : $first_char eq "@" ? sub { $self->_read_fastq }
+    :                      croak "Not a fasta or fastq file, $first_char is not > or @";
 }
 
 sub _read_fasta {
@@ -146,26 +145,36 @@ coerce 'ArrayRefOfInts', from 'Str', via {
 };
 
 has header   => (is => 'rw', isa    => 'Str');
-has quality  => (is => 'rw', coerce => 1, isa => 'ArrayRefOfInts');
+has quality  => (is => 'rw', isa    => 'Str');
 has sequence => (is => 'rw', isa    => 'Str');
 
+sub quality_array {
+  my $self = shift;
+  my $offset = exists $self->{illumina} ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
+  if(not exists $self->{quality_array}){
+    $self->{quality_array} = [map { $_ - $offset } unpack "c*", $self->quality];
+  }
+  return $self->{quality_array};
+}
 sub print {
   my ($self, $args) = @_;
   my $fh     = exists $args->{fh}       ? $args->{fh}      : $PRINT_DEFAULT_FH;
-  my $offset = exists $args->{illumina} ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
-  my $quality = $self->quality_str($args);
-  print $fh "@" . $self->{header} . "\n" . $self->{sequence} . "\n+" . $self->{header} . "\n" . $quality . "\n";
+  my $offset = exists $self->{illumina} ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
+  print $fh "@" . $self->{header} . "\n" . $self->{sequence} . "\n+" . $self->{header} . "\n" . $self->{quality} . "\n";
 }
 
 sub illumina_quals {
   my ($self) = @_;
-  $_ -= 32 for @{$self->{quality}};
+  $self->{illumina}=1;
 }
 
 sub quality_str {
   my ($self, $args) = @_;
-  my $offset = exists $args->{illumina} ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
-  return (pack "c*", map { $_ + $offset } @{$self->{quality}});
+  if(exists $self->{quality_array}){
+    my $offset = exists $self->{illumina} ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
+    $self->quality(pack "c*", map { $_ + $offset } @{$self->{quality_array}});
+  }
+  return $self->quality;
 }
 
 __PACKAGE__->meta->make_immutable;
