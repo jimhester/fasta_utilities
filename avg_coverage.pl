@@ -16,11 +16,13 @@ use Pod::Usage;
 my $man = 0;
 my $help = 0;
 my $region;
-GetOptions('region=s' => \$region, 'help|?' => \$help, man => \$man) or pod2usage(2);
+my $options = '';
+GetOptions('options=s' => \$options, 'region=s' => \$region, 'help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 
+$options .= " -r $region" if $region;
 ###############################################################################
 # Automatically extract compressed files
 ###############################################################################
@@ -62,7 +64,7 @@ for my $filename(@ARGV){
   }
   close HEADER;
 
-  open DEPTH, "samtools depth $filename |";
+  open DEPTH, "samtools depth $options $filename |";
 
   $count=0;
   my($chr,$pos,$depth) = split ' ',<DEPTH>;
@@ -78,6 +80,7 @@ for my $filename(@ARGV){
     $last_chr=$chr;
     print STDERR "\r".commify($count) if $count % 10000 == 0;
   }
+  print_depth(\%cov,$last_chr);
   print STDERR "\r";
 }
 
