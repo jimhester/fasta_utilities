@@ -3,7 +3,7 @@ use Mouse;
 use Carp;
 use FileBar;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 has fh => (is => 'ro', isa => 'GlobRef');
 has files => (is => 'ro', default => sub { \@ARGV }, isa => 'ArrayRef[Str]');
@@ -83,7 +83,7 @@ sub _read_fasta {
       return ReadFastx::Fasta->new(header => $header, sequence => $sequence);
     }
   }
-  elsif (eof $self->{fh} and $self->{file_itr} < @{$self->{files}}) {
+  elsif ($self->_end_of_files()) {
     $self->next_file();
     return ($self->_read_fasta);
   }
@@ -92,58 +92,81 @@ sub _read_fasta {
   }
 }
 
+sub _read_delim {
+  my ($fh, $delim) = @_;
+  local $/ = $delim;
+  my $data = readline $fh;
+  if ($data) {
+    chomp $data;
+    return $data;
+  }
+  return;
+}
+
 sub _read_fastq {
-  my $self = shift;
-  if (    defined(my $header = readline $self->{fh})
-      and defined(my $sequence = readline $self->{fh})
-      and defined(my $h2       = readline $self->{fh})
-      and defined(my $quality  = readline $self->{fh}))
-  {
+  my $self     = shift;
+  my $header   = _read_delim($self->{fh}, "\n");
+  my $sequence = _read_delim($self->{fh}, "\n+");
+  my $h2       = _read_delim($self->{fh}, "\n");
+  my $quality  = _read_delim($self->{fh}, "\n@");
+  if ($header and $sequence and $quality) {
     $header =~ s/^@//;    #remove @ if it exists
-    chomp $header;
-    chomp $sequence;
-    chomp $quality;
+    $sequence =~ tr/\n//d;
+    $quality =~ tr/\n//d;
     my $seq = ReadFastx::Fastq->new(header => $header, sequence => $sequence, quality => $quality);
     return $seq;
   }
-  elsif (eof $self->{fh}) {
-    return unless @{$self->{files}};
-    $self->_set_fh(shift @{$self->{files}});
-    return $self->_read_fastq;
+  elsif ($self->_end_of_files()) {
+    $self->next_file();
+    return ($self->_read_fasta);
   }
   else {
     return undef;
   }
 }
 
+sub _end_of_files {
+  my $self = shift;
+  return(eof $self->{fh} and $self->{file_itr} < @{$self->{files}});
+}
+
 __PACKAGE__->meta->make_immutable;
 1;
+
+package ReadFastx::Fastx;
+use Mouse;
+use Readonly;
+
+Readonly my $PRINT_DEFAULT_FH => \*STDOUT;
+
+has header   => (is => 'rw', isa => 'Str');
+has sequence => (is => 'rw', isa => 'Str');
+
+sub _wrap {
+  my ($self,$string, $width) = @_;
+  if ($width) {
+    my $out = '';
+    my $cur = 0;
+    while ($cur < length($string)) {
+      $out .= substr($string, $cur, $width) . "\n";
+      $cur += $width;
+    }
+    return $out;
+  }
+  return $string, "\n";
+}
 
 package ReadFastx::Fasta;
 use Mouse;
 use Readonly;
 
-has header   => (is => 'rw', isa => 'Str');
-has sequence => (is => 'rw', isa => 'Str');
-
-Readonly my $PRINT_DEFAULT_FH => \*STDOUT;
+extends ReadFastx::Fastx;
 
 sub print {
   my ($self, $args) = @_;
   my $fh    = exists $args->{fh}    ? $args->{fh}    : $PRINT_DEFAULT_FH;
   my $width = exists $args->{width} ? $args->{width} : undef;
-  my $out;
-  if ($width) {
-    my $cur = 0;
-    while ($cur < length($self->{sequence})) {
-      $out .= substr($self->{sequence}, $cur, $width) . "\n";
-      $cur += $width;
-    }
-  }
-  else {
-    $out = $self->{sequence} . "\n";
-  }
-  print $fh ">" . $self->{header} . "\n$out";
+  print $fh ">", $self->{header}, "\n", _wrap($self->{sequence}, $width);
 }
 
 __PACKAGE__->meta->make_immutable;
@@ -151,20 +174,14 @@ __PACKAGE__->meta->make_immutable;
 
 package ReadFastx::Fastq;
 use Mouse;
-use Mouse::Util::TypeConstraints;
 use Readonly;
+
+extends ReadFastx::Fastx;
 
 Readonly my $ILLUMINA_OFFSET => 64;
 Readonly my $SANGER_OFFSET   => 32;
 
-subtype 'ArrayRefOfInts', as 'ArrayRef[Int]';
-coerce 'ArrayRefOfInts', from 'Str', via {
-  [map { $_ - $SANGER_OFFSET } unpack "c*", $_];
-};
-
-has header   => (is => 'rw', isa => 'Str');
-has quality  => (is => 'rw', isa => 'Str');
-has sequence => (is => 'rw', isa => 'Str');
+has quality => (is => 'rw', isa => 'Str');
 
 sub quality_array {
   my $self = shift;
@@ -179,7 +196,11 @@ sub print {
   my ($self, $args) = @_;
   my $fh     = exists $args->{fh}       ? $args->{fh}      : $PRINT_DEFAULT_FH;
   my $offset = exists $self->{illumina} ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
-  print $fh "@" . $self->{header} . "\n" . $self->{sequence} . "\n+" . $self->{header} . "\n" . $self->{quality} . "\n";
+  my $width  = exists $args->{width}    ? $args->{width}   : undef;
+  if ($width) {
+
+  }
+  print $fh "@", $self->{header}, "\n", $self->_wrap($self->{sequence}, $width), "+", $self->{header}, "\n", $self->_wrap($self->{quality}, $width);
 }
 
 sub illumina_quals {
