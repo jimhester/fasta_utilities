@@ -1,9 +1,6 @@
-use namespace::autoclean;
-
 package FileBar;
 use Moose;
 use MooseX::NonMoose;
-use Moose::Util;
 use Term::ProgressBar;
 use Time::HiRes qw(setitimer ITIMER_VIRTUAL);
 use POSIX qw(tcgetpgrp getpgrp);
@@ -12,10 +9,13 @@ use Readonly;
 use IO::Interactive qw(is_interactive);
 use Carp;
 
+our $VERSION = '0.01';
+
 extends 'Term::ProgressBar';
 
 Readonly my $FSIZE  => 7;
 Readonly my $UPDATE => .25;
+Readonly my $WAIT_TIME => 1;
 
 has fh_in => (is => 'rw', default => sub { \*ARGV }, isa => 'GlobRef');
 has files => (is => 'rw', default => sub { [@ARGV] }, isa => 'ArrayRef[Str]');
@@ -40,29 +40,35 @@ sub FOREIGNBUILDARGS {
 
 sub BUILD {
   my $self = shift;
+  # setup timed updates if interactive and not in the background or piping
   if (is_interactive()
       and not($self->_is_background()
               or any { $_ =~ m{[-|]}; } @{$self->files}))
   {
 
-    # setup timed updates if interactive and not in the background or piping
-    my $size = 0;
-    for my $file (@{$self->files}) {
-      $size += (stat($file))[$FSIZE];
-    }
-    $self->target($size);
+    $self->{next_update}      = 0;
     $self->{prev_size}        = 0;
     $self->{current_size}     = 0;
     $self->{current_position} = 0;
     $self->{current_file}     = '';
-    $self->{next_update}      = 0;
+    $self->{time} = 0;
+
+    my $size = $self->_files_size();
+    $self->target($size);
     $self->minor(0);
     $self->max_update_rate($UPDATE);
     $SIG{VTALRM} = sub { $self->_file_update() };
     setitimer(ITIMER_VIRTUAL, $UPDATE, $UPDATE);
   }
 }
-
+sub _files_size{
+  my $self = shift;
+  my $size = 0;
+  for my $file (@{$self->files}) {
+    $size += (stat($file))[$FSIZE];
+  }
+  return $size;
+}
 sub _name_set {
   my ($self, $new) = @_;
 }
@@ -80,30 +86,33 @@ sub _current_file_set {
     $self->{prev_size} += $size;
     $itr++;
   }
-  croak "$file_name not in ", join(" ", @{$self->files}), " something is very wrong!"
-    if $itr >= @{$self->files};
+
+  if ($itr >= @{$self->files}){
+    croak "$file_name not in ", join(" ", @{$self->files}), " something is very wrong!"
+  }
   $self->{current_position} = $itr;
-  $self->{current_size} =
-    (stat($self->files->[$self->{current_position}]));
-  $self->{current_file} = $file_name;
+  $self->{current_size}     = (stat($self->files->[$self->{current_position}]));
+  $self->{current_file}     = $file_name;
   my $short_name = _short_name($file_name);
   $self->{bar_width} += length($self->name) - length($short_name);
   $self->name($short_name);
 }
-
+override update => sub{
+  my ($self,$amount) = @_;
+  super() if time - $self->start > $WAIT_TIME;
+};
 sub _file_update {
   my $self = shift;
-
-  #print Dumper($ARGV, $self);
-  return $self->done
-    if $self->{current_position} >= @{$self->files} and eof $self->{fh_in};
+  return $self->done if $self->{current_position} >= @{$self->files} and eof $self->{fh_in};
   if ($ARGV and $self->{current_file} ne $ARGV) {
     $self->current_file($ARGV);
   }
   $self->{current_progress} = tell $self->{fh_in} unless eof $self->{fh_in};
-  $self->{total_progress}   = $self->{prev_size} + $self->{current_progress};
-  $self->{next_update}      = $self->update($self->{total_progress})
-    if $self->{total_progress} >= $self->{next_update};
+  $self->{total_progress} = $self->{prev_size} + $self->{current_progress};
+
+  if ($self->{total_progress} >= $self->{next_update}) {
+    $self->{next_update} = $self->update($self->{total_progress});
+  }
   return;
 }
 
@@ -122,7 +131,9 @@ sub done {
 sub DEMOLISH {
   my $self = shift;
   setitimer(ITIMER_VIRTUAL, 0, 0);
-  $self->update($self->target); 
+  print {$self->fh} "\r", ' ' x $self->term_width, "\r";
 }
 __PACKAGE__->meta->make_immutable;
+use namespace::autoclean;
 1;
+

@@ -1,9 +1,9 @@
-use namespace::autoclean;
-
 package ReadFastx;
 use Mouse;
 use Carp;
-#use FileBar;
+use FileBar;
+
+our $VERSION = '0.01';
 
 has fh => (is => 'ro', isa => 'GlobRef');
 has files => (is => 'ro', default => sub { \@ARGV }, isa => 'ArrayRef[Str]');
@@ -42,15 +42,13 @@ sub BUILD {
 
 sub next_file {
   my ($self) = shift;
-  $self->{file_itr} = -1 unless $self->{file_itr};
   $self->{file_itr}++;
   return if $self->{file_itr} >= @{$self->files};
   $self->current_file($self->files->[$self->{file_itr}]);
 }
 
 sub _current_file {
-  my ($self) = @_;
-  my $file = $self->files->[$self->{file_itr}];
+  my ($self, $file) = @_;
   open my $fh, $file or croak "$!: Could not open $file\n";
   $self->{fh} = $fh;
   if (not $self->{bar}) {
@@ -85,7 +83,7 @@ sub _read_fasta {
       return ReadFastx::Fasta->new(header => $header, sequence => $sequence);
     }
   }
-  elsif (eof $self->{fh} and $self->{file_itr} >= @{$self->{files}}) {
+  elsif (eof $self->{fh} and $self->{file_itr} < @{$self->{files}}) {
     $self->next_file();
     return ($self->_read_fasta);
   }
@@ -199,4 +197,5 @@ sub quality_str {
 }
 
 __PACKAGE__->meta->make_immutable;
+use namespace::autoclean;
 1;
