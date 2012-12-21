@@ -31,6 +31,11 @@ sub BUILD {
 sub readline {
   my $self = shift;
   if (not $self->{fh} or eof $self->{fh}) {
+    if(exists $self->{prev}){
+      my $prev = $self->{prev};
+      delete $self->{prev};
+      return $prev;
+    }
     return unless @{$self->{files}};
     my $file = shift @{$self->{files}};
     open my $fh, $file or die "$!: Could not open $file\n";
@@ -42,8 +47,20 @@ sub readline {
     $headers .= $line;
     $line = readline $self->{fh};
   }
-  return sam_header->new($headers) if ($headers and not $self->{alignments_only});
-  return $self->parse_line($line);
+  my $parse = $self->parse_line($line); 
+  if($headers){
+    if(not $self->alignments_only){
+      $self->{prev} = $parse;
+      return sam_header->new($headers) if not $self->alignments_only;
+    }
+    return $parse;
+  } 
+  if(exists $self->{prev}){
+    my $prev = $self->{prev};
+    $self->{prev} = $parse;
+    return $prev;
+  }
+  return $parse;
 }
 
 sub parse_line {
@@ -178,5 +195,14 @@ sub string {
     @{$self->optional});
 }
 
+sub fastq {
+  my ($self) = @_;
+  return "@",$self->qname,"\n",$self->sequence,"\n+\n",$self->quality_str,"\n";
+}
+
+sub quality_str{
+  my ($self) = @_;
+  return pack "c*", map { $_ + 32 } @{ $self->quality };
+}
 __PACKAGE__->meta->make_immutable;
 1;
