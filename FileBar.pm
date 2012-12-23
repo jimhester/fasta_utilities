@@ -43,7 +43,7 @@ sub BUILD {
   # setup timed updates if interactive and not in the background or piping
   if (is_interactive()
       and not($self->_is_background()
-              or any { $_ =~ m{[-|]}; } @{$self->files}))
+              or any { $_ eq '-' or $_ =~ m{\|}; } @{$self->files}))
   {
 
     $self->{next_update}      = 0;
