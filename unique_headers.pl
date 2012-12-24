@@ -3,10 +3,9 @@ use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Date:04/02/2010
-# Last Modified: 2012 Dec 24 10:35:53 AM
-# Title:sam2fastq.pl
-# Purpose:Converts a sam file to fastq file(s)
+# Date:11/17/2011
+# Title:unique_headers.pl
+# Purpose:this script reads a fastafile and ensures all of the names are unique
 ###############################################################################
 
 ###############################################################################
@@ -16,27 +15,36 @@ use Getopt::Long;
 use Pod::Usage;
 my $man = 0;
 my $help = 0;
-my $illumina;
-my $pair=0;
-GetOptions('pair=i' => \$pair, 'illumina|I' => \$illumina,'help|?' => \$help, man => \$man) or pod2usage(2);
+GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
+
 ###############################################################################
-# sam2fastq.pl
+# Automatically extract compressed files
+###############################################################################
+@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
+###############################################################################
+# unique_headers.pl
 ###############################################################################
 
-use ReadSam;
-my $sam = ReadSam->new();
-while(my $align = $sam->next_align){
-  $align->quality( pack("c*", map{ $_ + 64 } $align->quality_array)) if $illumina;
-  if($pair == 1){
-    $align->qname($align->qname .= "/1");
+use ReadFastx;
+
+my $fastx = ReadFastx->new();
+
+my %names = ();
+while(my $seq = $fastx->next_seq){
+  my($header) = split ' ',$seq->header;
+  while(exists $names{$header}){
+    if($header =~ /(.+)\.([0-9]+)$/){
+      $header = $1.($2+1);
+    } else {
+      $header .= ".1";
+    }
   }
-  if($pair == 2){
-    $align->qname($align->qname .= "/2");
-  }
-  print $align->fastq;
+  $names{$header}++;
+  $seq->header($header);
+  $seq->print;
 }
 
 ###############################################################################
@@ -46,11 +54,11 @@ __END__
 
 =head1 NAME
 
-sam2fastq.pl - Converts a sam format to fastq format
+unique_headers.pl - this script reads a fastafile and ensures all of the names are unique
 
 =head1 SYNOPSIS
 
-sam2fastq.pl [options] [file ...]
+unique_headers.pl [options] [file ...]
 
 Options:
       -help
@@ -72,7 +80,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B</home/hesterj/fastaUtilities/sam2fastq.pl> this script gets the sequnece lengths from a sam file
+B<unique_headers.pl> this script reads a fastafile and ensures all of the names are unique
 
 =cut
 

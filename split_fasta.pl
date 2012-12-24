@@ -44,9 +44,9 @@ if(not $prefix){
   }
 }
 
-use readFastx;
+use ReadFastx;
 
-my $fastx = readFastx->new();
+my $fastx = ReadFastx->new();
 my $OUT;
 
 if($num){
@@ -66,13 +66,13 @@ if($num){
       $itr++;
       $cutoff+=$split_size;
     }
-    $seq->print($OUT,$width);
+    $seq->print(fh => $OUT, width => $width);
     $cur_size+=length($seq->sequence);
   }
 } else {
   while(my $seq = $fastx->next_seq){
     open_file("$prefix" . $seq->header . "$suffix");
-    $seq->print($OUT,$width);
+    $seq->print(fh => $OUT, width => $width);
   }
 }
 

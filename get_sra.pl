@@ -3,10 +3,10 @@ use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Created: 03/18/2010
-# Last Modified: 2012 Dec 24 09:52:05 AM
-# Title:fastq2fasta.pl
-# Purpose:this script converts fastq to fasta
+# Date:05/15/2012
+# Last Modified: 2012 Dec 24 10:39:47 AM
+# Title:get_sra.pl
+# Purpose:this script downloads the sra sequences from NCBI using aspera and outputs a fastq file
 ###############################################################################
 
 ###############################################################################
@@ -16,33 +16,41 @@ use Getopt::Long;
 use Pod::Usage;
 my $man = 0;
 my $help = 0;
-GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
+my $asperaDir = "/home/hesterj/.aspera";
+GetOptions('aspera=s' => \$asperaDir, 'help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
+
+###############################################################################
+# Automatically extract compressed files
+###############################################################################
 @ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
 ###############################################################################
-# fastq2fasta.pl
+# get_sra.pl
 ###############################################################################
 
-use ReadFastx;
-my $fastx = ReadFastx->new();
-while(my $seq = $fastx->next_seq){
-  my $fasta = ReadFastx::Fasta->new(sequence => $seq->sequence, header => $seq->header);
-}
+my $link = shift;
+my $description = shift;
 
+if($link =~ m{ftp://([^/]+)(/.+/)(.+)}){
+  my($server,$path,$dataset)=($1,$2,$3);
+  my $command = "$asperaDir/connect/bin/ascp --overwrite=never -k2 -i $asperaDir/connect/etc/asperaweb_id_dsa.putty -QT -L . -l 500m anonftp\@$server:$path$dataset .";
+  print STDERR $command;
+  system($command);
+  system("ln -s $dataset $description") if $description;
+}
 ###############################################################################
 # Help Documentation
 ###############################################################################
-__END__
 
 =head1 NAME
 
-fastq2fasta.pl - this script converts fastq to fasta
+get_sra.pl - this script downloads the sra sequences from NCBI using aspera and outputs a fastq file
 
 =head1 SYNOPSIS
 
-fastq2fasta.pl [options] [file ...]
+get_sra.pl [options] [file ...]
 
 Options:
       -help
@@ -64,7 +72,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<fastq2fasta.pl> this script converts fastq to fasta
+B<get_sra.pl> this script downloads the sra sequences from NCBI using aspera and outputs a fastq file
 
 =cut
 

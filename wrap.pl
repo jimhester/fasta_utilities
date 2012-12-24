@@ -3,10 +3,9 @@ use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Date:04/02/2010
-# Last Modified: 2012 Dec 24 10:35:53 AM
-# Title:sam2fastq.pl
-# Purpose:Converts a sam file to fastq file(s)
+# Date:10/05/2011
+# Title:wrap.pl
+# Purpose:limits fasta lines to 80 characters
 ###############################################################################
 
 ###############################################################################
@@ -16,27 +15,25 @@ use Getopt::Long;
 use Pod::Usage;
 my $man = 0;
 my $help = 0;
-my $illumina;
-my $pair=0;
-GetOptions('pair=i' => \$pair, 'illumina|I' => \$illumina,'help|?' => \$help, man => \$man) or pod2usage(2);
+my $width = 80;
+GetOptions('width=i' => \$width, 'help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
-###############################################################################
-# sam2fastq.pl
-###############################################################################
 
-use ReadSam;
-my $sam = ReadSam->new();
-while(my $align = $sam->next_align){
-  $align->quality( pack("c*", map{ $_ + 64 } $align->quality_array)) if $illumina;
-  if($pair == 1){
-    $align->qname($align->qname .= "/1");
-  }
-  if($pair == 2){
-    $align->qname($align->qname .= "/2");
-  }
-  print $align->fastq;
+###############################################################################
+# Automatically extract compressed files
+###############################################################################
+@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
+###############################################################################
+# wrap.pl
+###############################################################################
+use ReadFastx;
+
+my $file = ReadFastx->new();
+
+while(my $seq = $file->next_seq){
+  $seq->print(width => $width);
 }
 
 ###############################################################################
@@ -46,15 +43,16 @@ __END__
 
 =head1 NAME
 
-sam2fastq.pl - Converts a sam format to fastq format
+wrap.pl - limits fasta lines to 80 characters
 
 =head1 SYNOPSIS
 
-sam2fastq.pl [options] [file ...]
+wrap.pl [options] [file ...]
 
 Options:
       -help
       -man               for more info
+      -width
 
 =head1 OPTIONS
 
@@ -64,6 +62,10 @@ Options:
 
 Print a brief help message and exits.
 
+=item B<-width>
+
+set the amount of characters to make a new line
+
 =item B<-man>
 
 Prints the manual page and exits.
@@ -72,7 +74,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B</home/hesterj/fastaUtilities/sam2fastq.pl> this script gets the sequnece lengths from a sam file
+B<wrap.pl> limits fasta lines to 80 characters
 
 =cut
 

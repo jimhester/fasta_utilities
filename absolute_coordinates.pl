@@ -3,10 +3,9 @@ use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Created: 03/18/2010
-# Last Modified: 2012 Dec 24 09:52:05 AM
-# Title:fastq2fasta.pl
-# Purpose:this script converts fastq to fasta
+# Date:03/22/2011
+# Title:absolute_coordinates.pl
+# Purpose:this script takes a file with the chromosome and location and a file of chromosome sizes, and converts the coordinates to an absolute scale for plotting
 ###############################################################################
 
 ###############################################################################
@@ -22,14 +21,40 @@ pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 @ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
 ###############################################################################
-# fastq2fasta.pl
+# absolute_coordinates.pl
 ###############################################################################
 
-use ReadFastx;
-my $fastx = ReadFastx->new();
-while(my $seq = $fastx->next_seq){
-  my $fasta = ReadFastx::Fasta->new(sequence => $seq->sequence, header => $seq->header);
+my $sizes = shift;
+
+open SIZE, $sizes;
+
+my %sizes = ();
+
+while(<SIZE>){
+  my($chromosome, $size) = split;
+  $sizes{$chromosome}=$size;
 }
+close SIZE;
+my %finalSizes = ();
+my $sizeSoFar = 0;
+use chrSort;
+my @chrs = sort chrAsc keys %sizes;
+print STDERR "@chrs\n";
+for my $chr(@chrs){
+  $finalSizes{$chr} = $sizeSoFar;
+  $sizeSoFar += $sizes{$chr};
+}
+use FileBar;;
+
+my $bar = FileBar->new();
+while(<>){
+  if(/(.*)(chr\d+)(\s+)(\d+)(.*)/s){
+    my($before,$chromosome,$middle,$location,$after) = ($1,$2,$3,$4,$5);
+    print $before, $finalSizes{$chromosome} + $location, $after;
+  }
+}
+$bar->done();
+
 
 ###############################################################################
 # Help Documentation
@@ -38,11 +63,11 @@ __END__
 
 =head1 NAME
 
-fastq2fasta.pl - this script converts fastq to fasta
+absolute_coordinates.pl - this script takes a file with the chromosome and location and a file of chromosome sizes, and converts the coordinates to an absolute scale for plotting
 
 =head1 SYNOPSIS
 
-fastq2fasta.pl [options] [file ...]
+absolute_coordinates.pl [options] *.fa.fai [file ...]
 
 Options:
       -help
@@ -64,7 +89,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<fastq2fasta.pl> this script converts fastq to fasta
+B<absolute_coordinates.pl> this script takes a file with the chromosome and location and a file of chromosome sizes, and converts the coordinates to an absolute scale for plotting
 
 =cut
 

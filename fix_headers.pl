@@ -3,10 +3,9 @@ use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Date:04/02/2010
-# Last Modified: 2012 Dec 24 10:35:53 AM
-# Title:sam2fastq.pl
-# Purpose:Converts a sam file to fastq file(s)
+# Date:12/02/2010
+# Title:fixFastaHeaders.pl
+# Purpose:this script fixes the fastqheader by removing spaces and optionally appending a suffix
 ###############################################################################
 
 ###############################################################################
@@ -16,27 +15,27 @@ use Getopt::Long;
 use Pod::Usage;
 my $man = 0;
 my $help = 0;
-my $illumina;
-my $pair=0;
-GetOptions('pair=i' => \$pair, 'illumina|I' => \$illumina,'help|?' => \$help, man => \$man) or pod2usage(2);
+my $suffix ='';
+my $prefix = '';
+GetOptions('prefix=s' => \$prefix, 'suffix=s' => \$suffix, 'help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
+@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
 ###############################################################################
-# sam2fastq.pl
+# /home/hesterj/fastaUtilities/fix_headers.pl
 ###############################################################################
+use ReadFastx;
 
-use ReadSam;
-my $sam = ReadSam->new();
-while(my $align = $sam->next_align){
-  $align->quality( pack("c*", map{ $_ + 64 } $align->quality_array)) if $illumina;
-  if($pair == 1){
-    $align->qname($align->qname .= "/1");
-  }
-  if($pair == 2){
-    $align->qname($align->qname .= "/2");
-  }
-  print $align->fastq;
+my $fastx = ReadFastx->new();
+
+while(my $seq = $fastx->next_seq()){
+  my $header = $seq->header;
+  $seq->header = join("|",$prefix, $header, $suffix);
+  $header =~ tr/ /|/;
+  $header =~ tr/+//d;
+  $seq->header($header);
+  $seq->print;
 }
 
 ###############################################################################
@@ -46,11 +45,11 @@ __END__
 
 =head1 NAME
 
-sam2fastq.pl - Converts a sam format to fastq format
+fix_headers.pl - this script fixes the fastqheader by removing spaces and optionally appending a suffix
 
 =head1 SYNOPSIS
 
-sam2fastq.pl [options] [file ...]
+fix_headers.pl [options] [file ...]
 
 Options:
       -help
@@ -72,7 +71,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B</home/hesterj/fastaUtilities/sam2fastq.pl> this script gets the sequnece lengths from a sam file
+B</home/hesterj/fastaUtilities/fix_headers.pl> this script fixes the fastqheader by removing spaces and optionally appending a suffix
 
 =cut
 

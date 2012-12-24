@@ -1,7 +1,7 @@
 {
 
   package ReadSam;
-  use Class::XSAccessor getters => [qw(fh files header)];
+  use Class::XSAccessor getters => [qw(fh files header)], accessors => [qw(is_phred64)];
   use Carp;
   use FileBar;
   use Readonly;
@@ -83,7 +83,7 @@
       $itr++;
     }
     $ref{raw} = $line;
-    return ReadSam::SamAlignment->new(%ref);
+    return ReadSam::SamAlignment->new(%ref,is_phred64 => $self->is_phred64);
   }
 
   sub parse_header {
@@ -202,7 +202,20 @@
 
   sub fastq {
     my ($self) = @_;
-    return "@", $self->qname, "\n", $self->sequence, "\n+\n", $self->quality, "\n";
+    my $sequence = $self->sequence;
+    my $quality = $self->quality;
+    if($self->flag & 0x10){
+      $sequence = reverse_complement($sequence);
+      $quality = reverse($quality);
+    }
+    my $qname = $self->qname;
+    if($self->flag & 0x40){
+      $header .= "/1";
+    }
+    elsif($self->flag & 0x80){
+      $header .= "/2";
+    }
+    return "@", $qname, "\n", $sequence, "\n+\n", $quality, "\n";
   }
 
   sub quality_array {

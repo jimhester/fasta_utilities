@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 06 01:28:48 PM
-# Last Modified: 2012 Dec 06 02:08:18 PM
+# Last Modified: 2012 Dec 24 09:03:06 AM
 # Title:subset_fasta.pl
 # Purpose:subsets a fasta file
 ###############################################################################
@@ -41,8 +41,8 @@ $step = $size unless $step;
 # subset_fasta.pl
 ###############################################################################
 
-use read_fastx;
-my $fastx = read_fastx->new();
+use ReadFastx;
+my $fastx = ReadFastx->new();
 while (my $seq = $fastx->next_seq) {
   if ($percentage) {
     $size = int(length($seq->sequence) / $percentage);

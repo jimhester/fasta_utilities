@@ -3,10 +3,9 @@ use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Created: 03/18/2010
-# Last Modified: 2012 Dec 24 09:52:05 AM
-# Title:fastq2fasta.pl
-# Purpose:this script converts fastq to fasta
+# Date:10/04/2011
+# Title:percent_GC.pl
+# Purpose:calculates percent GC for each fasta record in a file, as well as the total GC content
 ###############################################################################
 
 ###############################################################################
@@ -20,16 +19,30 @@ GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
+
+###############################################################################
+# Automatically extract compressed files
+###############################################################################
 @ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
 ###############################################################################
-# fastq2fasta.pl
+# percent_GC.pl
 ###############################################################################
 
 use ReadFastx;
+
+my $totalGC=0;
+my $totalBases=0;
+
 my $fastx = ReadFastx->new();
 while(my $seq = $fastx->next_seq){
-  my $fasta = ReadFastx::Fasta->new(sequence => $seq->sequence, header => $seq->header);
+  my $sequence = uc($seq->sequence);
+  my $numGC = $sequence =~ tr/GC/GC/;
+  $totalGC += $numGC;
+  $totalBases += length($sequence);
+  printf "%s\t%.2f%%\n", $seq->header, $numGC/length($sequence) * 100;
 }
+printf "total\t%d\t%d\t%.2f%%\n", $totalGC,$totalBases,$totalGC/$totalBases * 100;
+
 
 ###############################################################################
 # Help Documentation
@@ -38,11 +51,11 @@ __END__
 
 =head1 NAME
 
-fastq2fasta.pl - this script converts fastq to fasta
+percent_GC.pl - calculates percent GC for each fasta record in a file, as well as the total GC content
 
 =head1 SYNOPSIS
 
-fastq2fasta.pl [options] [file ...]
+percent_GC.pl [options] [file ...]
 
 Options:
       -help
@@ -64,7 +77,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<fastq2fasta.pl> this script converts fastq to fasta
+B<percent_GC.pl> calculates percent GC for each fasta record in a file, as well as the total GC content
 
 =cut
 

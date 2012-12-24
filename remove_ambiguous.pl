@@ -3,10 +3,9 @@ use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Created: 03/18/2010
-# Last Modified: 2012 Dec 24 09:52:05 AM
-# Title:fastq2fasta.pl
-# Purpose:this script converts fastq to fasta
+# Date:11/30/2011
+# Title:remove_ambiguous.pl
+# Purpose:removes ambiguity codes from fasta files
 ###############################################################################
 
 ###############################################################################
@@ -14,21 +13,37 @@ use strict;
 ###############################################################################
 use Getopt::Long;
 use Pod::Usage;
-my $man = 0;
+my $man  = 0;
 my $help = 0;
-GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
+my $toN;
+GetOptions('N' => \$toN, 'help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
-pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
-@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
+pod2usage("$0: No files given.") if ((@ARGV == 0) && (-t STDIN));
+
 ###############################################################################
-# fastq2fasta.pl
+# Automatically extract compressed files
+###############################################################################
+@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/; $_ } @ARGV;
+###############################################################################
+# remove_ambiguous.pl
 ###############################################################################
 
 use ReadFastx;
-my $fastx = ReadFastx->new();
-while(my $seq = $fastx->next_seq){
-  my $fasta = ReadFastx::Fasta->new(sequence => $seq->sequence, header => $seq->header);
+
+my %mapping = ('[MRWVHDN]' => 'A', '[YKB]' => 'T', S => 'C');
+
+%mapping = ('[MRWVHDYKBS]' => 'N') if $toN;
+
+my $file = ReadFastx->new();
+
+while (my $seq = $file->next_seq) {
+  for my $map (keys %mapping) {
+    my $sequence = $seq->sequence;
+    $sequence =~ s/$map/$mapping{$map}/gi;
+    $seq->sequence($sequence);
+  }
+  $seq->print(width => 80);
 }
 
 ###############################################################################
@@ -38,11 +53,11 @@ __END__
 
 =head1 NAME
 
-fastq2fasta.pl - this script converts fastq to fasta
+remove_ambiguous.pl - removes ambiguity codes from fasta files
 
 =head1 SYNOPSIS
 
-fastq2fasta.pl [options] [file ...]
+remove_ambiguous.pl [options] [file ...]
 
 Options:
       -help
@@ -51,6 +66,10 @@ Options:
 =head1 OPTIONS
 
 =over 8
+
+=item B<-N>
+
+convert each ambiguous mapping to an N
 
 =item B<-help>
 
@@ -64,7 +83,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<fastq2fasta.pl> this script converts fastq to fasta
+B<remove_ambiguous.pl> removes ambiguity codes from fasta files
 
 =cut
 

@@ -3,10 +3,9 @@ use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Created: 03/18/2010
-# Last Modified: 2012 Dec 24 09:52:05 AM
-# Title:fastq2fasta.pl
-# Purpose:this script converts fastq to fasta
+# Date:10/18/2011
+# Title:merge_records.pl
+# Purpose:merges all the input records into one record, by defualt uses the name of the first record, but can be changed with -name
 ###############################################################################
 
 ###############################################################################
@@ -16,20 +15,34 @@ use Getopt::Long;
 use Pod::Usage;
 my $man = 0;
 my $help = 0;
-GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
+my $name;
+my $width = 80;
+GetOptions('width' => \$width, 'name=s' => \$name, 'help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
+
+###############################################################################
+# Automatically extract compressed files
+###############################################################################
 @ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
 ###############################################################################
-# fastq2fasta.pl
+# merge_records.pl
 ###############################################################################
 
 use ReadFastx;
-my $fastx = ReadFastx->new();
-while(my $seq = $fastx->next_seq){
-  my $fasta = ReadFastx::Fasta->new(sequence => $seq->sequence, header => $seq->header);
+
+my $full_sequence;
+
+my $file = ReadFastx->new();
+
+while(my $seq = $file->next_seq){
+  $full_sequence .= $seq->sequence;
+  $name = $seq->header unless $name;
 }
+
+my $full = ReadFastx::Fasta::Seq->new(header => $name, sequence => $full_sequence);
+$full->print(width => $width);
 
 ###############################################################################
 # Help Documentation
@@ -38,11 +51,11 @@ __END__
 
 =head1 NAME
 
-fastq2fasta.pl - this script converts fastq to fasta
+merge_records.pl - merges all the input records into one record, by defualt uses the name of the first record, but can be changed with -name
 
 =head1 SYNOPSIS
 
-fastq2fasta.pl [options] [file ...]
+merge_records.pl [options] [file ...]
 
 Options:
       -help
@@ -64,7 +77,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<fastq2fasta.pl> this script converts fastq to fasta
+B<merge_records.pl> merges all the input records into one record, by defualt uses the name of the first record, but can be changed with -name
 
 =cut
 

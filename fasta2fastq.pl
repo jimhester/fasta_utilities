@@ -27,37 +27,37 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
 # fastq2fasta.pl
 ###############################################################################
-use readFastx;
+use ReadFastx;
 sub wrapLines($$);
 use Storable;
-use qual_creator;
+#use qual_creator;
 my $qual;
-$qual = qual_creator->new(pssm_filename => $pssm) if $pssm;
+#$qual = qual_creator->new(pssm_filename => $pssm) if $pssm;
 
-my $file = readFastx->new();
+my $file = ReadFastx->new();
 while(my $seq = $file->next_seq){
   my $sequence = uc($seq->sequence);
   my $qualityStr;
   my $sequenceStr;
   if($pssm){
-    if($errorFactor == 0){
-      $sequenceStr = $sequence;
-      for my $itr(0..(length($sequence)-1)){
-        my($quality) = $qual->getQual($itr,substr($sequence,$itr,1));
-        $qualityStr .= $quality;
-      }
-    } else {
-      for my $itr(0..(length($sequence)-1)){
-        my($base,$quality) = $qual->getBoth($itr,substr($sequence,$itr,1),$errorFactor);
-        $qualityStr .= $quality;
-        $sequenceStr .= $base;
-      }
-    }
+#    if($errorFactor == 0){
+#      $sequenceStr = $sequence;
+#      for my $itr(0..(length($sequence)-1)){
+#        my($quality) = $qual->getQual($itr,substr($sequence,$itr,1));
+#        $qualityStr .= $quality;
+#      }
+#    } else {
+#      for my $itr(0..(length($sequence)-1)){
+#        my($base,$quality) = $qual->getBoth($itr,substr($sequence,$itr,1),$errorFactor);
+#        $qualityStr .= $quality;
+#        $sequenceStr .= $base;
+#      }
+#    }
   } else {
     $qualityStr = ($quality) x length($sequence);
     $sequenceStr = $sequence;
   }
-  my $fastq = readFastx::Fastq::Seq->new();
+  my $fastq = ReadFastx::Fastq::Seq->new();
   $fastq->header=$seq->header;
   $fastq->sequence = $sequenceStr;
   $fastq->quality = $qualityStr;
