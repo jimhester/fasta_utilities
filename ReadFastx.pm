@@ -83,26 +83,24 @@
   sub _read_fasta {
     my ($self) = @_;
     local $/ = ">";
-    if (my $record = readline $self->{fh}) {
+    if (defined(my $record = readline $self->{fh})) {
       chomp $record;
       my $newline = index($record, "\n");
       if ($newline > 1) {
         my $header = substr($record, 0, $newline);
         my $sequence = substr($record, $newline + 1);
-        $sequence =~ tr/\n//d;
+        $sequence =~ tr/\n\r\t //d;
         my $record = ReadFastx::Fasta->new();
         $record->{header}   = $header;
         $record->{sequence} = $sequence;
         return $record;
       }
     }
-    elsif ($self->_end_of_files()) {
-      $self->next_file();
-      return ($self->_read_fasta);
-    }
-    else {
+    if ($self->_end_of_files()) {
       return undef;
     }
+    $self->next_file();
+    return $self->next_seq;
   }
 
   sub _read_fastq {
@@ -132,26 +130,24 @@
       chomp $quality;
     }
 
-    if ($header and $sequence and $quality) {
-      $sequence =~ tr/\n//d;
-      $quality =~ tr/\n//d;
+    if (defined $header and defined $sequence and defined $quality) {
+      $sequence =~ tr/\n\r\t //d;
+      $quality =~ tr/\n\r\t //d;
       return
         ReadFastx::Fastq->new(header   => $header,
                               sequence => $sequence,
                               quality  => $quality);
     }
-    elsif ($self->_end_of_files()) {
-      $self->next_file();
-      return ($self->_read_fasta);
-    }
-    else {
+    if ($self->_end_of_files()) {
       return undef;
     }
+    $self->next_file();
+    return $self->next_seq;
   }
 
   sub _end_of_files {
     my ($self) = @_;
-    return (eof $self->{fh} and $self->{file_itr} < @{$self->{files}});
+    return (eof $self->{fh} and $self->{file_itr} > @{$self->{files}});
   }
 
 }

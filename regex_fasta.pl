@@ -1,10 +1,11 @@
 #!/usr/bin/perl
 use warnings;
+
 #use strict;
 ###############################################################################
 # Title:regex_fasta.pl
 # Created: 2012 Oct 08 01:06:35 PM - Jim Hester
-# Modified: 2012 Dec 31 12:01:51 PM
+# Modified: 2012 Dec 31 12:06:18 PM
 # Purpose:reformats the fasta header with the regex given by the first argument
 # By Jim Hester
 ###############################################################################
@@ -14,7 +15,7 @@ use warnings;
 ###############################################################################
 use Getopt::Long;
 use Pod::Usage;
-my $man = 0;
+my $man  = 0;
 my $help = 0;
 my @sequence;
 my @header;
@@ -29,38 +30,40 @@ GetOptions('width=i'    => \$width,
   or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
-pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
+pod2usage("$0: No files given.") if ((@ARGV == 0) && (-t STDIN));
 
-@header = split( /(?<!\\),/, join(",", @header));
-@sequence = split( /(?<!\\),/, join(",", @sequence));
+@header   = split(/(?<!\\),/, join(",", @header));
+@sequence = split(/(?<!\\),/, join(",", @sequence));
 ###############################################################################
 # Automatically extract compressed files
 ###############################################################################
-@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
+@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/; $_ } @ARGV;
 ###############################################################################
 use ReadFastx;
 
 #if no arguments are supplied, assume grepping for headers
-if(not @header and not @sequence){
-  $found=1;
+if (not @header and not @sequence) {
+  $found = 1;
   my $term = shift;
   $term = "m{$term}";
   push @header, $term;
 }
 
 my $fastx = ReadFastx->new();
-while(my $seq = $fastx->next_seq){
+while (my $seq = $fastx->next_seq) {
   my $val;
-  my($header,$sequence) = ($seq->header, $seq->sequence);
-  for my $regex(@header){
-    eval "\$val = \$header =~ $regex;"; warn $@ if $@;
+  my ($header, $sequence) = ($seq->header, $seq->sequence);
+  for my $regex (@header) {
+    eval "\$val = \$header =~ $regex;";
+    warn $@ if $@;
   }
-  for my $regex(@sequence){
-    eval "\$val = \$sequence =~ $regex;"; warn $@ if $@;
-  } 
+  for my $regex (@sequence) {
+    eval "\$val = \$sequence =~ $regex;";
+    warn $@ if $@;
+  }
   $seq->header($header);
   $seq->sequence($sequence);
-  $seq->print(width=>$width) unless($found and not $val);
+  $seq->print(width => $width) unless ($found and not $val);
 }
 
 ###############################################################################

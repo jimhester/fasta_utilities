@@ -172,7 +172,7 @@
   Readonly my $SANGER_OFFSET => 32;
   my @SAM_FIELDS    = qw(qname flag rname position mapq cigar rnext pnext tlen sequence quality optional);
 
-  use Class::XSAccessor constructor => 'new', accessors => [ qw(qname flag rname position mapq cigar rnext pnext tlen sequence optional) ];#accessors => [grep { $_ ne 'quality'} @SAM_FIELDS, qw(raw)];
+  use Class::XSAccessor constructor => 'new', accessors => [ qw(qname flag rname position mapq cigar rnext pnext tlen sequence optional raw) ];
 
   sub end {
     my $self = shift;
