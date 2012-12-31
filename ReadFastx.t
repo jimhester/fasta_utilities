@@ -1,10 +1,7 @@
+use strict;
+use warnings;
 use Test::More;# tests => 16;
 use Test::Output;
-
-sub myfunc { print "This is a test\n" }
-
-stdout_is(\&myfunc, "This is a test\n", 'myfunc() returns test output');
-
 
 use ReadFastx;
 
@@ -75,11 +72,14 @@ $record = $fastx->next_seq;
 is(length($record->sequence), 320, "wrapped fastq sequence");
 is(length($record->quality), 320, "wrapped fastq quality");
 
-@array = $record->quality_array();
+my @array = $record->quality_array();
 $array[0] = 10;
 $record->quality_array(\@array);
 
 is(substr($record->quality,0,1),chr(32+10), "modify quality");
+
+$record->quality_at(1,11);
+is(substr($record->quality,1,1),chr(32+11), "quality_at");
 
 while(my $seq = $fastx->next_seq){};
 

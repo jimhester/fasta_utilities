@@ -244,7 +244,7 @@
     my $width  = exists $args->{width} ? $args->{width}   : undef;
     print $fh "@", $self->header, "\n", $self->_wrap($self->sequence, $width), "+", $self->header, "\n", $self->_wrap($self->quality, $width);
   }
-}
 
-#use namespace::autoclean;
+  use namespace::autoclean;
+}
 1;

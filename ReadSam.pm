@@ -1,3 +1,5 @@
+use warnings;
+use strict;
 {
 
   package ReadSam;
@@ -6,6 +8,7 @@
   use FileBar;
   use Readonly;
 
+  Readonly my $COMMENT_CODE => 'CO';
   Readonly my @SAM_FIELDS => qw(qname flag rname position mapq cigar rnext pnext tlen sequence quality optional);
   our $VERSION = '0.10';
 
@@ -57,7 +60,7 @@
   sub next_align {
     my $self = shift;
     unless (eof $self->fh) {
-      my $line = readline $self->fh;
+      my $line  = readline $self->fh;
       my $parse = $self->parse_align($line);
       my $prev  = $self->{prev};
       $self->{prev} = $parse;
@@ -78,12 +81,19 @@
   sub parse_align {
     my ($self, $line) = @_;
     my $itr = 0;
+    my %ref;
     for my $value (split /[\t\n]/, $line) {
-      $ref{$SAM_FIELDS[$itr]} = $value;
+      if ($itr < @SAM_FIELDS-1) {
+        $ref{$SAM_FIELDS[$itr]} = $value;
+      }
+      else {
+        my ($tag, $val) = $value =~ m{([A-Z]+):(.*)};
+        $ref{optional}{$tag} = $val;
+      }
       $itr++;
     }
     $ref{raw} = $line;
-    return ReadSam::SamAlignment->new(%ref,is_phred64 => $self->is_phred64);
+    return ReadSam::SamAlignment->new(%ref, is_phred64 => $self->is_phred64);
   }
 
   sub parse_header {
@@ -133,6 +143,7 @@
     }
     $self->{current_file} = $file;
   }
+  use namespace::autoclean;
 }
 
 {
@@ -149,7 +160,7 @@
     for my $code (keys %{$self->tags}) {
       for my $item (@{$self->tags->{$code}}) {
         my $line = $code;
-        if ($code eq "COMMENT_CODE") {
+        if ($code eq $COMMENT_CODE) {
           $line .= "\t" . $self->tags->{$code}{$item}{Comment};
         }
         else {
@@ -160,7 +171,9 @@
         $lines .= "$line\n";
       }
     }
+    return $lines;
   }
+  use namespace::autoclean;
 }
 
 {
@@ -169,10 +182,10 @@
   use Readonly;
 
   Readonly my $PRINT_DEFAULT_FH => \*STDOUT;
-  Readonly my $SANGER_OFFSET => 32;
-  my @SAM_FIELDS    = qw(qname flag rname position mapq cigar rnext pnext tlen sequence quality optional);
+  Readonly my $SANGER_OFFSET    => 32;
+  my @SAM_FIELDS = qw(qname flag rname position mapq cigar rnext pnext tlen sequence quality optional);
 
-  use Class::XSAccessor constructor => 'new', accessors => [ qw(qname flag rname position mapq cigar rnext pnext tlen sequence optional raw) ];
+  use Class::XSAccessor constructor => 'new', accessors => [qw(qname flag rname position mapq cigar rnext pnext tlen sequence optional raw)];
 
   sub end {
     my $self = shift;
@@ -197,23 +210,24 @@
 
   sub string {
     my ($self) = @_;
-    return join("\t", $self->qname, $self->flag, $self->rname, $self->position, $self->mapq, $self->cigar, $self->rnext, $self->pnext, $self->tlen, $self->sequence, $self->quality, $self->optional);
+    my $optional = join("\t", map { $_ . ':' . $self->optional->{$_} } keys %{$self->optional});
+    return join("\t", $self->qname, $self->flag, $self->rname, $self->position, $self->mapq, $self->cigar, $self->rnext, $self->pnext, $self->tlen, $self->sequence, $self->quality, $optional);
   }
 
   sub fastq {
-    my ($self) = @_;
+    my ($self)   = @_;
     my $sequence = $self->sequence;
-    my $quality = $self->quality;
-    if($self->flag & 0x10){
+    my $quality  = $self->quality;
+    if ($self->flag & 0x10) {
       $sequence = reverse_complement($sequence);
-      $quality = reverse($quality);
+      $quality  = reverse($quality);
     }
     my $qname = $self->qname;
-    if($self->flag & 0x40){
-      $header .= "/1";
+    if ($self->flag & 0x40) {
+      $qname .= "/1";
     }
-    elsif($self->flag & 0x80){
-      $header .= "/2";
+    elsif ($self->flag & 0x80) {
+      $qname .= "/2";
     }
     return "@", $qname, "\n", $sequence, "\n+\n", $quality, "\n";
   }
@@ -251,6 +265,6 @@
     }
     return $self->quality_array()->[$position];
   }
+  use namespace::autoclean;
 }
 1;
-use namespace::autoclean;
