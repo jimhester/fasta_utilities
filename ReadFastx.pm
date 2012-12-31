@@ -189,7 +189,7 @@
     my $args  = @_ == 1 && ref $_[0]  ? $_[0]          : {@_};
     my $fh    = exists $args->{fh}    ? $args->{fh}    : $PRINT_DEFAULT_FH;
     my $width = exists $args->{width} ? $args->{width} : undef;
-    print $fh ">", $self->{header}, "\n", _wrap($self->{sequence}, $width);
+    print $fh ">", $self->{header}, "\n", $self->_wrap($self->{sequence}, $width);
   }
 }
 
