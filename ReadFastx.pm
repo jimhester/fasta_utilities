@@ -9,10 +9,14 @@
 
   sub new {
     my $class = shift;
+    my $self;
     if (@_ == 1 && !ref $_[0]) {
-      return bless {files => [$_[0]]}, $class;
+      $self->{files} = [$_[0]];
     }
-    my $self = bless {@_}, $class;
+    else {
+      $self = {@_};
+    }
+    $self = bless $self, $class;
     $self->{files} = \@ARGV unless exists $self->{files};
     $self->BUILD($self);
     return $self;
@@ -82,19 +86,17 @@
 
   sub _read_fasta {
     my ($self) = @_;
-    local $/ = ">";
+    local $/ = "\n>";
     if (defined(my $record = readline $self->{fh})) {
       chomp $record;
       my $newline = index($record, "\n");
-      if ($newline > 1) {
-        my $header = substr($record, 0, $newline);
-        my $sequence = substr($record, $newline + 1);
-        $sequence =~ tr/\n\r\t //d;
-        my $record = ReadFastx::Fasta->new();
-        $record->{header}   = $header;
-        $record->{sequence} = $sequence;
-        return $record;
-      }
+      my $header = substr($record, 0, $newline);
+      my $sequence = substr($record, $newline + 1);
+      $sequence =~ tr/\n\r\t //d;
+      my $record = ReadFastx::Fasta->new();
+      $record->{header}   = $header;
+      $record->{sequence} = $sequence;
+      return $record;
     }
     if ($self->_end_of_files()) {
       return undef;

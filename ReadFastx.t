@@ -7,9 +7,7 @@ use ReadFastx;
 
 create_test_files();
 
-@ARGV = qw(test.fasta test.fastq);
-
-my $fastx = ReadFastx->new();
+my $fastx = ReadFastx->new("test.fasta");
 
 my $record = $fastx->next_seq;
 
@@ -30,17 +28,21 @@ CTACACTAATCACCACCTAACCCTTTCGAATCCCTCCGCCCCAAACCCAACTAGCATAAAACCCGCCATTCCAACTCCTC
 stdout_is(sub { $record->print(width=>130) },">header2
 CTACACTAATCACCACCTAACCCTTTCGAATCCCTCCGCCCCAAACCCAACTAGCATAAAACCCGCCATTCCAACTCCTCAGAACCCAACCTACTACCCACCCAAACCCCTAGCACCCGTGCACAGACTG\n", "wrapped exact print");
 $record = $fastx->next_seq;
+
+use Data::Dumper;
+print Dumper($record);
 is(length($record->sequence), 0, "parsing empty sequence");
 
 $record = $fastx->next_seq;
 is(length($record->sequence), 4, "parsing short sequence");
 
-
-is($fastx->current_file, "test.fasta", "current file");
-
 $record = $fastx->next_seq;
 
-is($fastx->current_file, "test.fastq", "new file");
+is($record->header, "header5", "short");
+
+$fastx = ReadFastx->new("test.fastq");
+
+$record = $fastx->next_seq;
 
 is($record->header, "header2", "fastq header");
 is(length($record->sequence), 130, "fastq sequence");
@@ -99,8 +101,12 @@ AAAAATGGAGTGACCCCCGGACAGTAACTCCCAAGGTAAGGTTGAAATGGAACCAAGGGGAACTAACCTAGGAGAGAAAA
 >header2
 CTACACTAATCACCACCTAACCCTTTCGAATCCCTCCGCCCCAAACCCAACTAGCATAAAACCCGCCATTCCAACTCCTCAGAACCCAACCTACTACCCACCCAAACCCCTAGCACCCGTGCACAGACTG
 >header3
+
 >header4
-ACGT\n";
+ACGT
+>header5
+ACGTACGT
+";
   close $fasta;
 
   open my $fastq, '>', "test.fastq";
