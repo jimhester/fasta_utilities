@@ -5,7 +5,7 @@
   use Carp;
   use FileBar;
 
-  our $VERSION = '0.20';
+  our $VERSION = '0.25';
 
   sub new {
     my $class = shift;
@@ -149,7 +149,10 @@
     my ($self) = @_;
     return (eof $self->{fh} and $self->{file_itr} > @{$self->{files}});
   }
-
+  sub close {
+    my ($self) = @_;
+    close $self->fh;
+  }
 }
 
 {

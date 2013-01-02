@@ -7,20 +7,20 @@ use ReadSam;
 
 create_test_files();
 
-@ARGV = qw(test.sam test.bam);
-
-my $sam = ReadSam->new();
+my $sam = ReadSam->new("test.sam");
 
 my $header = $sam->header;
 
 use Data::Dumper;
 
-is(scalar keys %{ $header->tags }, 3, "parse header");
-is($header->lines =~ tr/\n/\n/, 4, "header lines");
+is(scalar keys %{ $header->tags }, 3, "parse sam header");
+is($header->lines =~ tr/\n/\n/, 4, "sam header lines");
 
 my $align = $sam->next_align;
 
 like($align->qname, qr{HWI-ST909:137:C17C3ACXX:}, "qname");
+
+is($align->string =~ tr/\t/\t/, $align->raw =~ tr/\t/\t/, "sam align parsing");
 
 my $array = $align->quality_array();
 $array->[0] = 10;
@@ -28,13 +28,32 @@ $align->quality_array($array);
 
 is(substr($align->quality,0,1),chr(32+10), "modify quality");
 
-is($align->string =~ tr/\t/\t/, $align->raw =~ tr/\t/\t/, "string/raw");
 
 $align->quality_at(1,11);
 is(substr($align->quality,1,1),chr(32+11), "quality_at");
 
+is($align->end, 34,"end");
+
+$sam->close;
+
+is($sam->next_align, undef, "read on closed");
+
+my $sam2 = ReadSam->new("test.bam");
+
+my $header2 = $sam2->header;
+
+is(scalar keys %{ $header2->tags }, 3, "bam parse header");
+
+is($header2->lines =~ tr/\n/\n/, 4, "bam header lines");
+
+my $align_bam = $sam2->next_align;
+
+like($align_bam->qname, qr{HWI-ST909:137:C17C3ACXX:}, "bam qname");
+
+is($align_bam->string =~ tr/\t/\t/, $align_bam->raw =~ tr/\t/\t/, "bam align parsing");
 
 unlink qw(test.sam test.bam);
+
 done_testing();
 
 sub create_test_files{

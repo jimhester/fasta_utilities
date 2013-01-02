@@ -72,16 +72,18 @@ $record = $fastx->next_seq;
 is(length($record->sequence), 320, "wrapped fastq sequence");
 is(length($record->quality), 320, "wrapped fastq quality");
 
-my @array = $record->quality_array();
-$array[0] = 10;
-$record->quality_array(\@array);
+my $array = $record->quality_array();
+$array->[0] = 10;
+$record->quality_array($array);
 
 is(substr($record->quality,0,1),chr(32+10), "modify quality");
 
 $record->quality_at(1,11);
 is(substr($record->quality,1,1),chr(32+11), "quality_at");
 
-while(my $seq = $fastx->next_seq){};
+$fastx->close;
+
+is($fastx->next_seq, undef, "read on close");
 
 unlink qw(test.fasta test.fastq);
 done_testing();

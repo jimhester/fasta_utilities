@@ -10,14 +10,18 @@ use strict;
 
   Readonly my $COMMENT_CODE => 'CO';
   Readonly my @SAM_FIELDS => qw(qname flag rname position mapq cigar rnext pnext tlen sequence quality optional);
-  our $VERSION = '0.10';
+  our $VERSION = '0.20';
 
   sub new {
     my $class = shift;
+    my $self;
     if (@_ == 1 && !ref $_[0]) {
-      return bless {files => [$_[0]]}, $class;
+      $self->{files} = [$_[0]];
     }
-    my $self = bless {@_}, $class;
+    else {
+      $self = {@_};
+    }
+    $self = bless $self, $class;
     $self->{files} = \@ARGV unless exists $self->{files};
     $self->BUILD($self);
     return $self;
@@ -143,6 +147,12 @@ use strict;
     }
     $self->{current_file} = $file;
   }
+
+  sub close {
+    my ($self) = @_;
+    delete $self->{prev};
+    close $self->fh;
+  }
   use namespace::autoclean;
 }
 
@@ -197,7 +207,7 @@ use strict;
         $end += $num;
       }
     }
-    $self->end($end);
+    $self->{end} = $end;
     return $end;
   }
 
