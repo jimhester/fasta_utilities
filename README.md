@@ -55,6 +55,7 @@ A brief description of the scripts.
   directly, and calculates the nX of the file, by default N50
 * CpG_count.pl    -  counts the number of CpGs in a fasta file
 * fasta_head.pl   -  emulates unix head for fasta and fastq files
+* fasta_tail.pl   -  emulates unix tail for fasta and fastq files
 * percent_GC.pl   -  calculates percent GC for each fasta record in a file, as 
   well as the total GC content
 * sam_lengths.pl  -  gets the sequence lengths from a sam file
