@@ -69,19 +69,26 @@
     $self->{fh} = $fh;
     if (not $self->{bar}) {
       $self->{bar} = FileBar->new(current_file => $file,
-                                    files        => $self->files,
-                                    fh_in        => $self->fh);
-      }
-      else {
-        $self->{bar}->fh_in($fh);
-        $self->{bar}->current_file($file);
+                                  files        => $self->files,
+                                  fh_in        => $self->fh);
     }
-    my $first_char = getc $self->{fh};
+    else {
+      $self->{bar}->fh_in($fh);
+      $self->{bar}->current_file($file);
+    }
+    my $first_char = $self->_get_first($self->{fh});
     $self->{reader} =
         $first_char eq ">" ? sub { $self->_read_fasta }
       : $first_char eq "@" ? sub { $self->_read_fastq }
       :                      croak "Not a fasta or fastq file, $first_char is not > or @";
     $self->{current_file} = $file;
+  }
+
+  sub _get_first{
+    my($self, $fh) = @_;
+    local $/ = \1;
+    my $first = <$fh>;
+    return $first;
   }
 
   sub _read_fasta {
@@ -151,6 +158,7 @@
     my ($self) = @_;
     return (eof $self->{fh} and $self->{file_itr} > @{$self->{files}});
   }
+
   sub close {
     my ($self) = @_;
     close $self->fh;
@@ -173,7 +181,7 @@
       }
       return $out;
     }
-    return $string, "\n";
+    return ($string . "\n");
   }
 }
 
@@ -185,12 +193,19 @@
 
   Readonly my $PRINT_DEFAULT_FH => \*STDOUT;
 
+  sub string {
+    my ($self) = shift;
+    my $args = @_ == 1 && ref $_[0] ? $_[0] : {@_};
+    my $width = exists $args->{width} ? $args->{width} : undef;
+    return ('>' . $self->header . "\n" . $self->_wrap($self->sequence, $width));
+  }
+
   sub print {
     my ($self) = shift;
     my $args  = @_ == 1 && ref $_[0]  ? $_[0]          : {@_};
     my $fh    = exists $args->{fh}    ? $args->{fh}    : $PRINT_DEFAULT_FH;
     my $width = exists $args->{width} ? $args->{width} : undef;
-    print $fh ">", $self->{header}, "\n", $self->_wrap($self->{sequence}, $width);
+    print $fh $self->string(@_);
   }
 }
 
@@ -241,13 +256,22 @@
     return $self->quality_array()->[$position];
   }
 
+  sub string {
+    my ($self) = shift;
+    my $args   = @_ == 1 && ref $_[0]  ? $_[0]            : {@_};
+    my $fh     = exists $args->{fh}    ? $args->{fh}      : $PRINT_DEFAULT_FH;
+    my $offset = $self->is_phred64     ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
+    my $width  = exists $args->{width} ? $args->{width}   : undef;
+    return ("@" . $self->header . "\n" . $self->_wrap($self->sequence, $width) . "+" . $self->header . "\n" . $self->_wrap($self->quality, $width));
+  }
+
   sub print {
     my ($self) = shift;
     my $args   = @_ == 1 && ref $_[0]  ? $_[0]            : {@_};
     my $fh     = exists $args->{fh}    ? $args->{fh}      : $PRINT_DEFAULT_FH;
-    my $offset = $self->is_phred64    ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
+    my $offset = $self->is_phred64     ? $ILLUMINA_OFFSET : $SANGER_OFFSET;
     my $width  = exists $args->{width} ? $args->{width}   : undef;
-    print $fh "@", $self->header, "\n", $self->_wrap($self->sequence, $width), "+", $self->header, "\n", $self->_wrap($self->quality, $width);
+    print $fh $self->string(@_);
   }
 
   use namespace::autoclean;

@@ -76,6 +76,7 @@ A brief description of the scripts.
 * entrez_fetch.pl      -  Download a number of sequences from an entrez query
 * generate_map.pl      -  remaps fasta sequences from the first file to fasta 
   sequences from the second file, matches by hashing the sequence
+* get_gi.pl            -  download fasta files from NCBI and outputs a fasta file
 * get_sra.pl           -  downloads the sra sequences from NCBI using aspera 
   and outputs a fastq file
 * mpileup_counts.pl    -  parses a mpileup file and gets the base counts
