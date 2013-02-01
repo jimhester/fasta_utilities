@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # Title:mpileup_counts.pl
 # Created: 2012 Oct 26 08:28:19 AM
-# Modified: 2012 Oct 26 10:59:47 AM
+# Modified: 2013 Jan 25 03:57:07 PM
 # Purpose:parses a mpileup file and gets the basecounts
 # By Jim Hester
 ###############################################################################
@@ -33,9 +33,11 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 my @bases = qw(A C G T N);
 print join("\t","chromosome","position","coverage","raf","reference",@bases)."\n";
 
+my %sequences;
 while(<>){
   #parse mpileup
   my($chr,$pos,$ref,$coverage,$reads,$qualities) = split;
+  $sequences{$chr}{last} = 0 unless exists $sequences{$chr}; # initialize last position
   $reads = uc $reads; #make all letters uppercase
   $reads =~ s/[.,]/$ref/g; #change ref bases to ref letter
   $reads =~ s/\^.//g; #remove read starts and mapping quality
@@ -48,10 +50,21 @@ while(<>){
     my $count = $reads =~ s/$base/$base/g;
     $counts{$base} = $count ? $count : 0;
   }
-  print join("\t",$chr, $pos, $coverage, sprintf("%6.2f",$counts{$ref}/$coverage*100)
-    ,$ref,(map { $counts{$_} } @bases))."\n";
+  $sequences{$chr}{sequence} .= 'n' x $pos - ($sequences{$chr}{last} + 1); #pad with n's if nesseseary
+
+  my $consensus_base = $counts{most_frequent_base(\%counts)};
+  $sequences{$chr}{sequence} .= $consensus_base;
+  $sequences{$chr}{last} = $pos;
 }
 
+open my $out, "| ~/fu/wrap.pl" or die "$!: Could not open file\n";
+for my $name (keys %sequences){
+  print $out ">$name\n$sequences{$name}\n";
+}
+sub most_frequent_base{
+  my($hash_ref) = @_;
+  return (sort { $hash_ref->{$b} <=> $hash_ref->{$a} } keys %{ $hash_ref })[0];
+}
 ###############################################################################
 # Help Documentation
 ###############################################################################

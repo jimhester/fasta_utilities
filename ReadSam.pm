@@ -7,6 +7,7 @@ use strict;
   use Carp;
   use FileBar;
   use Readonly;
+  use autodie;
 
   Readonly my $COMMENT_CODE => 'CO';
   Readonly my @SAM_FIELDS => qw(qname flag rname position mapq cigar rnext pnext tlen sequence quality optional);
@@ -91,7 +92,7 @@ use strict;
         $ref{$SAM_FIELDS[$itr]} = $value;
       }
       else {
-        my ($tag, $val) = $value =~ m{([A-Z]+):(.*)};
+        my ($tag, $val) = $value =~ m{([A-Z0-9]+):(.*)};
         $ref{optional}{$tag} = $val;
       }
       $itr++;
@@ -123,7 +124,7 @@ use strict;
 
   sub _set_current_file {
     my ($self, $file) = @_;
-    open my $fh, $file or croak "$!: Could not open $file\n";
+    open my ($fh), $file;
     $self->{fh} = $fh;
     if (not $self->{bar}) {
       $self->{bar} = FileBar->new(current_file => $file,
@@ -148,7 +149,7 @@ use strict;
     $self->{current_file} = $file;
   }
 
-  sub close {
+  sub close_file {
     my ($self) = @_;
     delete $self->{prev};
     close $self->fh;

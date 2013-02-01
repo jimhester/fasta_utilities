@@ -4,6 +4,7 @@
   use Class::XSAccessor getters => [qw(fh files)];
   use Carp;
   use FileBar;
+  use autodie;
 
   our $VERSION = '0.25';
 
@@ -65,7 +66,7 @@
 
   sub _set_current_file {
     my ($self, $file) = @_;
-    open my $fh, $file or croak "$!: Could not open $file\n";
+    open my ($fh), $file;
     $self->{fh} = $fh;
     if (not $self->{bar}) {
       $self->{bar} = FileBar->new(current_file => $file,
@@ -96,14 +97,9 @@
     local $/ = "\n>";
     if (defined(my $record = readline $self->{fh})) {
       chomp $record;
-      my $newline = index($record, "\n");
-      my $header = substr($record, 0, $newline);
-      my $sequence = substr($record, $newline + 1);
+      my($header, $sequence) = split qr{\n}o, $record, 2;
       $sequence =~ tr/\n\r\t //d;
-      my $record = ReadFastx::Fasta->new();
-      $record->{header}   = $header;
-      $record->{sequence} = $sequence;
-      return $record;
+      return ReadFastx::Fasta->new(header=>$header, sequence=>$sequence);
     }
     if ($self->_end_of_files()) {
       return undef;
@@ -159,7 +155,7 @@
     return (eof $self->{fh} and $self->{file_itr} > @{$self->{files}});
   }
 
-  sub close {
+  sub close_file {
     my ($self) = @_;
     close $self->fh;
   }

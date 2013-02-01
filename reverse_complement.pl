@@ -34,7 +34,8 @@ while(my $seq = $file->next_seq){
 sub reverse_complement{
   my($in) = @_;
   $in =~ tr/ACGTacgt/TGCAtgca/;
-  return(reverse($in));
+  $in = reverse($in);
+  return($in);
 }
 ###############################################################################
 # Help Documentation

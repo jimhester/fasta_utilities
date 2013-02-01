@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 13 03:49:14 PM
-# Last Modified: 2012 Dec 14 11:25:18 AM
+# Last Modified: 2013 Jan 14 03:31:11 PM
 # Title:combine_bed.pl
 # Purpose:Combine bed files
 ###############################################################################
@@ -78,7 +78,7 @@ while (any { defined($_) } @lines) {
     #if the current file has the current lowest line, print data, get next line
     #for fh
     if (defined($cmp) and $cmp == 0) {
-      $line_out .= $line->{data};
+      $line_out .= "\t" . $line->{data};
       $line = read_line($fh);
     }
 
@@ -126,7 +126,7 @@ sub print_headers {
 
       #use modulo header names to recycle the names
       $headers = $header_names[$itr % @header_names];
-      my $num_data   = $data_widths->[$itr];
+      my $num_data   = exists $data_widths->[$itr] ? $data_widths->[$itr] : 0;
       my $num_header = @{$headers};
       die "$file has $num_data data columns, but only $num_header header columns supplied\n" if $num_data > $num_header;
     }
@@ -145,7 +145,8 @@ sub read_line {
   my $line = <$fh>;
   return unless $line;
   chomp $line;
-  my ($chr, $pos, $rest) = $line =~ m{([^\t]+)\t([^\t]+)(.*)};
+  # split in thirds
+  my ($chr, $pos, $rest) = split /\t/, $line, 3;
   return ({data => $rest, chromosome => $chr, position => $pos});
 }
 

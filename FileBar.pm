@@ -7,7 +7,7 @@ use POSIX qw(tcgetpgrp getpgrp);
 use List::MoreUtils qw(any);
 use Readonly;
 use IO::Interactive qw(is_interactive);
-use Carp;
+use Carp qw(cluck);
 
 our $VERSION = '0.01';
 
@@ -88,7 +88,8 @@ sub _current_file_set {
   }
 
   if ($itr >= @{$self->files}){
-    croak "$file_name not in ", join(" ", @{$self->files}), " something is very wrong!"
+    return $self->done;
+    cluck "$file_name not in ", join(" ", @{$self->files}), " something is very wrong!"
   }
   $self->{current_position} = $itr;
   $self->{current_size}     = (stat($self->files->[$self->{current_position}]));

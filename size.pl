@@ -1,13 +1,12 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Created: 2012 Dec 24 10:42:29 AM
-# Last Modified: 2013 Feb 01 03:14:51 PM
-# Title:rename_script.pl
-# Purpose:Rename a file, changing any references to the old name in the file to
-# the new name
+# Created: 2013 Jan 14 01:15:46 PM
+# Last Modified: 2013 Jan 14 01:24:22 PM
+# Title:size.pl
+# Purpose:Get number of sequences and total size
 ###############################################################################
 # Code to handle help menu and man page
 ###############################################################################
@@ -15,15 +14,7 @@ use Getopt::Long;
 use Pod::Usage;
 my $man  = 0;
 my $help = 0;
-my $git;
-my $force;
-my $delete;
-GetOptions( 'git'    => \$git,
-            'delete' => \$delete,
-            'force'  => \$force,
-            'help|?' => \$help,
-            man      => \$man )
-  or pod2usage(2);
+GetOptions( 'help|?' => \$help, man => \$man ) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage( -verbose => 2 ) if $man;
 pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
@@ -36,52 +27,37 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
   $_
 } @ARGV;
 ###############################################################################
-# rename_script.pl
+# size.pl
 ###############################################################################
+use ReadFastx;
 
-my $old_filename = shift;
-open my $in, "<", "$old_filename" or die "$!:Could not open $old_filename\n";
+my ( $total_size, $total_num ) = ( 0, 0 );
 
-my $new_filename = shift;
-die "$new_filename exists, use --force to overwrite"
-  if -e $new_filename and not $force;
-open my $out, ">", "$new_filename" or die "$!:Could not open $new_filename\n";
+my $fastx = ReadFastx->new();
 
-my $old = no_extension( base($old_filename) );
-my $new = no_extension( base($new_filename) );
-
-while (<$in>) {
-  s/$old/$new/g;
-  print $out $_;
+my $prev_filename = $fastx->current_file;
+my ( $current_size, $current_num ) = ( 0, 0 );
+while ( my $seq = $fastx->next_seq ) {
+  if ( $prev_filename ne $fastx->current_file ) {
+    print join( "\t", $prev_filename, $current_num, $current_size ), "\n";
+    $total_size += $current_size;
+    $total_num += $current_num;
+  }
+  $current_size += length( $seq->sequence );
+  $current_num++;
 }
-close $out;
-system("chmod ug+x $new_filename");
-unlink $old_filename if $delete;
-exit;
-
-sub base {
-  my ($path) = @_;
-  $path =~ s{.*/}{};
-  return $path;
-}
-
-sub no_extension {
-  my ($path) = @_;
-  $path =~ s{\..*}{};
-  return $path;
-}
-
+print join( "\t", $prev_filename, $current_num, $current_size ), "\n";
 ###############################################################################
 # Help Documentation
 ###############################################################################
 
 =head1 NAME
 
-rename_script.pl - Rename a file, changing any references to the old name in the file to the new name
+size.pl - Get number of sequences and total size
 
 =head1 SYNOPSIS
 
-rename_script.pl [options] [file ...]
+size.pl [options] [file ...]
 
 Options:
       -help
@@ -103,8 +79,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<rename_script.pl> Rename a file, changing any references to the old name in the file to 
-# the new name
+B<size.pl> Get number of sequences and total size
 
 =cut
 

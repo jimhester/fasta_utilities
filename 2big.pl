@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Date:10/13/2010
-# Title:to_big.pl
+# Title:2big.pl
 # Purpose:this script takes a bed, sam, or wiggle file and creates a big version of it to upload to ucsc
 ###############################################################################
 
@@ -21,7 +21,7 @@ pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: Please give a file to convert and the chromosome sizes file for your reference genome")  if ((@ARGV != 2) && (-t STDIN));
 ###############################################################################
-# to_big.pl
+# 2big.pl
 ###############################################################################
 
 my $filename = shift;
@@ -66,11 +66,11 @@ __END__
 
 =head1 NAME
 
-to_big.pl - this script takes a bed, sam, or wiggle file and creates a big version of it to upload to ucsc
+2big.pl - this script takes a bed, sam, or wiggle file and creates a big version of it to upload to ucsc
 
 =head1 SYNOPSIS
 
-to_big.pl [options] [file ...]
+2big.pl [options] [file ...]
 
 Options:
       -prefix
@@ -97,7 +97,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<to_big.pl> this script takes a bed, sam, or wiggle file and creates a big version of it to upload to ucsc
+B<2big.pl> this script takes a bed, sam, or wiggle file and creates a big version of it to upload to ucsc
 
 =cut
 

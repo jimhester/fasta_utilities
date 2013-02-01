@@ -2,11 +2,11 @@
 use warnings;
 use strict;
 ###############################################################################
+# Title:trans_fasta.pl
+# Created: 2012 Oct 19 01:23:58 PM - Jim Hester
+# Modified: 2012 Oct 19 01:27:58 PM - Jim Hester
+# Purpose:translates a cDNA fasta file to protein
 # By Jim Hester
-# Date:05/15/2012
-# Last Modified: 2012 Dec 24 10:39:47 AM
-# Title:get_sra.pl
-# Purpose:this script downloads the sra sequences from NCBI using aspera and outputs a fastq file
 ###############################################################################
 
 ###############################################################################
@@ -16,8 +16,7 @@ use Getopt::Long;
 use Pod::Usage;
 my $man = 0;
 my $help = 0;
-my $asperaDir = "/home/hesterj/.aspera";
-GetOptions('aspera=s' => \$asperaDir, 'help|?' => \$help, man => \$man) or pod2usage(2);
+GetOptions('help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
@@ -27,30 +26,28 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
 @ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
 ###############################################################################
-# get_sra.pl
+# trans_fasta.pl
 ###############################################################################
+use Bio::SeqIO;
 
-my $link = shift;
-my $description = shift;
+my $fastaI = Bio::SeqIO->new(-fh => \*ARGV,-format=>'fasta');
+my $fastaO = Bio::SeqIO->new(-fh => \*STDOUT,-format=>'fasta');
 
-if($link =~ m{ftp://([^/]+)(/.+/)(.+)}){
-  my($server,$path,$dataset)=($1,$2,$3);
-  my $command = "$asperaDir/connect/bin/ascp --overwrite=never -k2 -i $asperaDir/connect/etc/asperaweb_id_dsa.putty -QT -L . -l 500m anonftp\@$server:$path$dataset .";
-  print STDERR $command;
-  system($command);
-  system("ln -s $dataset $description") if $description;
+while(my $seq = $fastaI->next_seq){
+  $fastaO->write_seq($seq->translate);
 }
+
 ###############################################################################
 # Help Documentation
 ###############################################################################
 
 =head1 NAME
 
-get_sra.pl - this script downloads the sra sequences from NCBI using aspera and outputs a fastq file
+trans_fasta.pl - translates a cDNA fasta file to protein
 
 =head1 SYNOPSIS
 
-get_sra.pl [options] [file ...]
+trans_fasta.pl [options] [file ...]
 
 Options:
       -help
@@ -72,7 +69,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<get_sra.pl> this script downloads the sra sequences from NCBI using aspera and outputs a fastq file
+B<trans_fasta.pl> translates a cDNA fasta file to protein
 
 =cut
 

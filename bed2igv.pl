@@ -1,13 +1,12 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 use warnings;
 use strict;
 ###############################################################################
 # By Jim Hester
-# Created: 2012 Dec 24 10:42:29 AM
-# Last Modified: 2013 Feb 01 03:14:51 PM
-# Title:rename_script.pl
-# Purpose:Rename a file, changing any references to the old name in the file to
-# the new name
+# Created: 2013 Jan 22 09:30:31 AM
+# Last Modified: 2013 Jan 22 09:44:53 AM
+# Title:bed2igv.pl
+# Purpose:Converts a bed file to a igv snapshot script
 ###############################################################################
 # Code to handle help menu and man page
 ###############################################################################
@@ -15,14 +14,18 @@ use Getopt::Long;
 use Pod::Usage;
 my $man  = 0;
 my $help = 0;
-my $git;
-my $force;
-my $delete;
-GetOptions( 'git'    => \$git,
-            'delete' => \$delete,
-            'force'  => \$force,
-            'help|?' => \$help,
-            man      => \$man )
+my $use_name;
+my $collapse;
+my $session;
+my $path = "./";
+my $img="png";
+GetOptions( 'name'      => \$use_name,
+            'collapse'  => \$collapse,
+            'session=s' => \$session,
+            'path=s'    => \$path,
+            'img=s'     => \$img,
+            'help|?'    => \$help,
+            man         => \$man )
   or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage( -verbose => 2 ) if $man;
@@ -36,39 +39,19 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
   $_
 } @ARGV;
 ###############################################################################
-# rename_script.pl
+# bed2igv.pl
 ###############################################################################
 
-my $old_filename = shift;
-open my $in, "<", "$old_filename" or die "$!:Could not open $old_filename\n";
+print "snapshotDirectory $path\n";
+print "load $session\n" if $session;
 
-my $new_filename = shift;
-die "$new_filename exists, use --force to overwrite"
-  if -e $new_filename and not $force;
-open my $out, ">", "$new_filename" or die "$!:Could not open $new_filename\n";
-
-my $old = no_extension( base($old_filename) );
-my $new = no_extension( base($new_filename) );
-
-while (<$in>) {
-  s/$old/$new/g;
-  print $out $_;
-}
-close $out;
-system("chmod ug+x $new_filename");
-unlink $old_filename if $delete;
-exit;
-
-sub base {
-  my ($path) = @_;
-  $path =~ s{.*/}{};
-  return $path;
-}
-
-sub no_extension {
-  my ($path) = @_;
-  $path =~ s{\..*}{};
-  return $path;
+while(<>){
+  chomp;
+  my($chromosome, $start, $end, $name) = split /\t/;
+  print "goto $chromosome:" . ($start+1) . "-$end\n";
+  print "collapse\n" if $collapse;
+  my $snap_filename = $use_name ? "$name.$img" : "$chromosome-$start-$end.$img";
+  print "snapshot $snap_filename\n"
 }
 
 ###############################################################################
@@ -77,11 +60,11 @@ sub no_extension {
 
 =head1 NAME
 
-rename_script.pl - Rename a file, changing any references to the old name in the file to the new name
+bed2igv.pl - Converts a bed file to a igv snapshot script
 
 =head1 SYNOPSIS
 
-rename_script.pl [options] [file ...]
+bed2igv.pl [options] [file ...]
 
 Options:
       -help
@@ -103,8 +86,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<rename_script.pl> Rename a file, changing any references to the old name in the file to 
-# the new name
+B<bed2igv.pl> Converts a bed file to a igv snapshot script
 
 =cut
 

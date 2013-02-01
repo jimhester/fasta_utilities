@@ -5,7 +5,7 @@ use strict;
 # By Jim Hester
 # Created: 2013 Jan 17 10:17:28 AM
 # Last Modified: 2013 Jan 17 10:45:39 AM
-# Title:get_gi.pl
+# Title:fetch_gi.pl
 # Purpose:Gets a gi fasta file from ncbi
 ###############################################################################
 # Code to handle help menu and man page
@@ -37,14 +37,14 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
   $_
 } @ARGV;
 ###############################################################################
-# get_gi.pl
+# fetch_gi.pl
 ###############################################################################
 use Term::ProgressBar;
 use ReadFastx;
 
 @gis = split /,/, join( ',', @gis );
 
-push @gis, get_gi_from_file($file) if $file;
+push @gis, fetch_gi_from_file($file) if $file;
 
 push @gis, @ARGV;
 
@@ -70,7 +70,7 @@ sub generate_gi_url {
   return $url;
 }
 
-sub get_gi_from_file {
+sub fetch_gi_from_file {
   my ($file) = @_;
   my @gi_list;
   open my $in, "<", "$file" or die "$!:Could not open $file\n";
@@ -87,11 +87,11 @@ sub get_gi_from_file {
 
 =head1 NAME
 
-get_gi.pl - Gets a gi fasta file from ncbi, you can specify them directly with -gi, or just put on the command line, if you have a file of gi use the -f switch
+fetch_gi.pl - Gets a gi fasta file from ncbi, you can specify them directly with -gi, or just put on the command line, if you have a file of gi use the -f switch
 
 =head1 SYNOPSIS
 
-get_gi.pl [options] [file ...]
+fetch_gi.pl [options] [file ...]
 
 Options:
       -file|f
@@ -128,7 +128,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<get_gi.pl> Gets a gi fasta file from ncbi
+B<fetch_gi.pl> Gets a gi fasta file from ncbi
 
 =cut
 

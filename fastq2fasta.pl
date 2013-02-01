@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 03/18/2010
-# Last Modified: 2012 Dec 24 09:52:05 AM
+# Last Modified: 2013 Jan 18 03:57:03 PM
 # Title:fastq2fasta.pl
 # Purpose:this script converts fastq to fasta
 ###############################################################################
@@ -29,6 +29,7 @@ use ReadFastx;
 my $fastx = ReadFastx->new();
 while(my $seq = $fastx->next_seq){
   my $fasta = ReadFastx::Fasta->new(sequence => $seq->sequence, header => $seq->header);
+  $fasta->print;
 }
 
 ###############################################################################

@@ -5,7 +5,7 @@ use strict;
 # By Jim Hester
 # Created: 2012 Dec 10 10:20:30 AM
 # Last Modified: 2012 Dec 10 10:24:20 AM
-# Title:entrez_fetch.pl
+# Title:fetch_entrez.pl
 # Purpose:Download a number of sequences from an entrez query
 ###############################################################################
 # Code to handle help menu and man page
@@ -20,7 +20,7 @@ pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: Please supply an entrez search")  if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
-# entrez_fetch.pl
+# fetch_entrez.pl
 ###############################################################################
 
 use LWP::Simple;
@@ -54,11 +54,11 @@ for (my $retstart = 0; $retstart < $count; $retstart += $retmax) {
 
 =head1 NAME
 
-entrez_fetch.pl - Download a number of sequences from an entrez query
+fetch_entrez.pl - Download a number of sequences from an entrez query
 
 =head1 SYNOPSIS
 
-entrez_fetch.pl [options] [file ...]
+fetch_entrez.pl [options] [file ...]
 
 Options:
       -help
@@ -80,7 +80,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<entrez_fetch.pl> Download a number of sequences from an entrez query
+B<fetch_entrez.pl> Download a number of sequences from an entrez query
 
 =cut
 

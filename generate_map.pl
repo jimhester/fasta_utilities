@@ -43,7 +43,7 @@ while(my $seq = $map->next_seq){
 my $change = ReadFastx->new(shift);
 
 while(my $seq = $change->next_seq){
-  $seq->sequence = uc $seq->sequence;
+  $seq->sequence(uc $seq->sequence);
   if(exists $seqs{$seq->sequence}){
     if($remap){
       $seq->header($seqs{$seq->sequence});
