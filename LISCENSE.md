@@ -1,5 +1,4 @@
-zlib License Agreement
-===
+Copyright notice:
 
 (C) 2009-2012 Jim Hester
 
