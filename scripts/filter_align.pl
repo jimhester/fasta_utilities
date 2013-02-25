@@ -30,7 +30,7 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # filter_align.pl
 ###############################################################################
 
-use read_sam;
+use ReadSam;
 
 use List::Util qw(sum);
 
@@ -57,12 +57,7 @@ my %function_map = (  query               =>   \&filter_query,
                       length              =>   \&filter_flag,
                    );
 
-
-no Moose;
-
 package main;
-
-use JimBar;
 
 my $sam = read_sam->new();
 my $header = $sam->readline;

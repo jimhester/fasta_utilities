@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 21 10:47:32 AM
-# Last Modified: 2012 Dec 31 12:25:00 PM
+# Last Modified: 2013 Feb 06 01:13:34 PM
 # Title:filter_reads.pl
 # Purpose:given reads and a database, filters the reads which do not map, can
 # also keep the database of reads

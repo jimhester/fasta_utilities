@@ -2,9 +2,9 @@
 use warnings;
 use strict;
 ###############################################################################
-# Title:mpileup_counts.pl
+# Title:mpileup_consensus.pl
 # Created: 2012 Oct 26 08:28:19 AM
-# Modified: 2013 Feb 25 01:48:42 PM
+# Modified: 2013 Jan 25 03:57:07 PM
 # Purpose:parses a mpileup file and gets the basecounts
 # By Jim Hester
 ###############################################################################
@@ -26,13 +26,12 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
 @ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
 ###############################################################################
-# mpileup_counts.pl
+# mpileup_consensus.pl
 ###############################################################################
-use Carp;
 
 #setup and print headers
 my @bases = qw(A C G T N);
-print join("\t","chromosome","position","coverage","reference","raf",@bases)."\n";
+print join("\t","chromosome","position","coverage","raf","reference",@bases)."\n";
 
 my %sequences;
 while(<>){
@@ -45,17 +44,17 @@ while(<>){
   $reads =~ s/\$//g; #remove read ends
   $reads =~ s/[\+\-]([0-9]+)(??{"\\w{$^N}"})//g; #remove indels
 
-  #get counts for bases
+  #print base counts and raf
   my %counts;
-  my $total;
   for my $base(@bases){
-    my $count = $reads =~ s/$base/$base/g || 0;
-    $counts{$base}= $count ? $count : 0;
-    $total+=$count;
+    my $count = $reads =~ s/$base/$base/g;
+    $counts{$base} = $count ? $count : 0;
   }
-  croak if $total != $coverage;
-  #print data
-  print join("\t", $chr, $pos, $coverage, $ref,sprintf("%2f", $counts{$ref}/$coverage), map { $counts{$_} } @bases), "\n";
+  $sequences{$chr}{sequence} .= 'n' x $pos - ($sequences{$chr}{last} + 1); #pad with n's if nesseseary
+
+  my $consensus_base = $counts{most_frequent_base(\%counts)};
+  $sequences{$chr}{sequence} .= $consensus_base;
+  $sequences{$chr}{last} = $pos;
 }
 
 open my $out, "| ~/fu/wrap.pl" or die "$!: Could not open file\n";
@@ -72,11 +71,11 @@ sub most_frequent_base{
 
 =head1 NAME
 
-mpileup_counts.pl - parses a mpileup file and gets the basecounts
+mpileup_consensus.pl - parses a mpileup file and gets the basecounts
 
 =head1 SYNOPSIS
 
-mpileup_counts.pl [options] [file ...]
+mpileup_consensus.pl [options] [file ...]
 
 Options:
       -help
@@ -98,7 +97,7 @@ Prints the manual page and exits.
 
 =head1 DESCRIPTION
 
-B<mpileup_counts.pl> parses a mpileup file and gets the basecounts
+B<mpileup_consensus.pl> parses a mpileup file and gets the basecounts
 
 =cut
 

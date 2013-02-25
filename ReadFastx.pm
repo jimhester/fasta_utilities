@@ -4,9 +4,17 @@
   use Class::XSAccessor getters => [qw(fh files)];
   use Carp;
   use FileBar;
-  use autodie;
 
   our $VERSION = '0.25';
+
+  #hack to use autodie with overridden builtins
+  sub close {
+    use autodie qw(close);
+    my ($self) = @_;
+    CORE::close($self->fh);
+  }
+
+  use autodie; 
 
   sub new {
     my $class = shift;
@@ -155,10 +163,7 @@
     return (eof $self->{fh} and $self->{file_itr} > @{$self->{files}});
   }
 
-  sub close_file {
-    my ($self) = @_;
-    close $self->fh;
-  }
+  use namespace::autoclean;
 }
 
 {
@@ -179,6 +184,7 @@
     }
     return ($string . "\n");
   }
+  use namespace::autoclean;
 }
 
 {

@@ -13,20 +13,23 @@ our $VERSION = '0.01';
 
 extends 'Term::ProgressBar';
 
-Readonly my $FSIZE  => 7;
-Readonly my $UPDATE => .25;
+Readonly my $FSIZE     => 7;
+Readonly my $UPDATE    => .25;
 Readonly my $WAIT_TIME => 1;
 
-has fh_in => (is => 'rw', default => sub { \*ARGV }, isa => 'GlobRef');
-has files => (is => 'rw', default => sub { [@ARGV] }, isa => 'ArrayRef[Str]');
-has current_file => (is => 'rw', trigger => \&_current_file_set, isa => 'Str');
-has name         => (is => 'rw', trigger => \&_name_set,         isa => 'Str');
+has fh_out => ( is => 'rw', default => sub { \*STDERR }, isa => 'GlobRef' );
+has fh_in => ( is => 'rw', default => sub { \*ARGV }, isa => 'GlobRef' );
+has files =>
+  ( is => 'rw', default => sub { [@ARGV] }, isa => 'ArrayRef[Str]' );
+has current_file =>
+  ( is => 'rw', default => sub { $_[0]->files->[0]; }, trigger => \&_current_file_set, isa => 'Str' );
+has name => ( is => 'rw', trigger => \&_name_set, isa => 'Str' );
 
 around BUILDARGS => sub {
   my $orig  = shift;
   my $class = shift;
-  if (@_ == 1 && !ref $_[0]) {
-    return $class->$orig(files => [$_[0]]);
+  if ( @_ == 1 && !ref $_[0] ) {
+    return $class->$orig( files => [ $_[0] ] );
   }
   else {
     return $class->$orig(@_);
@@ -34,16 +37,19 @@ around BUILDARGS => sub {
 };
 
 sub FOREIGNBUILDARGS {
+  use Data::Dumper;
+  #print STDERR Dumper(@_);
   my $class = shift;
-  return {name => '', ETA => 'linear', count => 1, remove => 1};
+  my $args = { @_ };
+  return { name => _short_name($args->{current_file}), ETA => 'linear', count => 1, remove => 1 };#, fh => $args->{fh_out} };
 }
 
 sub BUILD {
   my $self = shift;
+
   # setup timed updates if interactive and not in the background or piping
-  if (is_interactive()
-      and not($self->_is_background()
-              or any { $_ eq '-' or $_ =~ m{\|}; } @{$self->files}))
+  if ( is_interactive()
+       and not( $self->_is_background() or $self->_is_piping() ) )
   {
 
     $self->{next_update}      = 0;
@@ -51,68 +57,83 @@ sub BUILD {
     $self->{current_size}     = 0;
     $self->{current_position} = 0;
     $self->{current_file}     = '';
-    $self->{time} = 0;
+    $self->{time}             = 0;
 
     my $size = $self->_files_size();
     $self->target($size);
     $self->minor(0);
     $self->max_update_rate($UPDATE);
     $SIG{VTALRM} = sub { $self->_file_update() };
-    setitimer(ITIMER_VIRTUAL, $UPDATE, $UPDATE);
+    setitimer( ITIMER_VIRTUAL, $UPDATE, $UPDATE );
   }
 }
-sub _files_size{
+
+sub _files_size {
   my $self = shift;
   my $size = 0;
-  for my $file (@{$self->files}) {
-    $size += (stat($file))[$FSIZE];
+  for my $file ( @{ $self->files } ) {
+    $size += ( stat($file) )[$FSIZE];
   }
   return $size;
 }
+
 sub _name_set {
-  my ($self, $new) = @_;
+  my ( $self, $new ) = @_;
+  return _short_name($new);
 }
 
 sub _is_background {
   open A, "</dev/tty";
-  return (exists $ENV{PARALLEL_PID} or \*A and tcgetpgrp(fileno(A)) != getpgrp());
+  return ( exists $ENV{PARALLEL_PID}
+             or \*A and tcgetpgrp( fileno(A) ) != getpgrp() );
+}
+
+sub _is_piping {
+  my ($self) = @_;
+  return scalar any { $_ eq '-' or $_ =~ m{\|}; } @{ $self->files };
 }
 
 sub _current_file_set {
-  my ($self, $file_name) = @_;
+  my ( $self, $file_name ) = @_;
   my $itr = exists $self->{current_position} ? $self->{current_position} : 0;
-  while ($itr < @{$self->files} and $self->files->[$itr] ne $file_name) {
-    my $size = (stat($self->files->[$itr]))[$FSIZE];
+  while ( $itr < @{ $self->files } and $self->files->[$itr] ne $file_name ) {
+    my $size = ( stat( $self->files->[$itr] ) )[$FSIZE];
     $self->{prev_size} += $size;
     $itr++;
   }
 
-  if ($itr >= @{$self->files}){
+  if ( $itr >= @{ $self->files } ) {
     return $self->done;
-    cluck "$file_name not in ", join(" ", @{$self->files}), " something is very wrong!"
+    cluck "$file_name not in ", join( " ", @{ $self->files } ),
+      " something is very wrong!";
   }
   $self->{current_position} = $itr;
-  $self->{current_size}     = (stat($self->files->[$self->{current_position}]));
-  $self->{current_file}     = $file_name;
+  $self->{current_size} =
+    ( stat( $self->files->[ $self->{current_position} ] ) );
+  $self->{current_file} = $file_name;
   my $short_name = _short_name($file_name);
-  $self->{bar_width} += length($self->name) - length($short_name);
+  $self->{bar_width} += length( $self->name ) - length($short_name);
   $self->name($short_name);
 }
-override update => sub{
-  my ($self,$amount) = @_;
-  super() if time - $self->start > $WAIT_TIME;
+
+override 'update' => sub {
+  my($self) = @_;
+  return if time - $self->start < $WAIT_TIME;
+  return super();
 };
+
 sub _file_update {
   my $self = shift;
-  return $self->done if $self->{current_position} >= @{$self->files} and eof $self->{fh_in};
-  if ($ARGV and $self->{current_file} ne $ARGV) {
+  return $self->done
+    if $self->{current_position} >= @{ $self->files } and eof $self->{fh_in};
+  if ( $ARGV and $self->{current_file} ne $ARGV ) {
     $self->current_file($ARGV);
   }
   $self->{current_progress} = tell $self->{fh_in} unless eof $self->{fh_in};
   $self->{total_progress} = $self->{prev_size} + $self->{current_progress};
 
-  if ($self->{total_progress} >= $self->{next_update}) {
-    $self->{next_update} = $self->update($self->{total_progress});
+  if ( $self->{total_progress} >= $self->{next_update} ) {
+    $self->{next_update} = $self->update( $self->{total_progress} );
   }
   return;
 }
@@ -125,14 +146,14 @@ sub _short_name {
 
 sub done {
   my $self = shift;
-  setitimer(ITIMER_VIRTUAL, 0, 0);
-  $self->update($self->target);
+  setitimer( ITIMER_VIRTUAL, 0, 0 );
+  $self->update( $self->target );
 }
 
 sub DEMOLISH {
   my $self = shift;
-  setitimer(ITIMER_VIRTUAL, 0, 0);
-  print {$self->fh} "\r", ' ' x $self->term_width, "\r";
+  setitimer( ITIMER_VIRTUAL, 0, 0 );
+  print { $self->fh_out } "\r", ' ' x $self->term_width, "\r";
 }
 __PACKAGE__->meta->make_immutable;
 use namespace::autoclean;

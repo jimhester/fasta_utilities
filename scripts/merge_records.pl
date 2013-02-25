@@ -41,8 +41,8 @@ while(my $seq = $file->next_seq){
   $name = $seq->header unless $name;
 }
 
-my $full = ReadFastx::Fasta::Seq->new(header => $name, sequence => $full_sequence);
-$full->print(width => $width);
+my $full = ReadFastx::Fasta->new(header => $name, sequence => $full_sequence);
+$full->print;
 
 ###############################################################################
 # Help Documentation

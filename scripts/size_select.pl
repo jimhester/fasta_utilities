@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Date:12/14/2010
-# Last Modified: 2012 Dec 24 10:07:52 AM
+# Last Modified: 2013 Feb 05 02:08:40 PM
 # Title:size_select.pl
 # Purpose:returns the sequences with lengths between the values specified by -low and -high
 ###############################################################################
@@ -30,7 +30,7 @@ use ReadFastx;
 my $fastx = ReadFastx->new();
 while(my $seq = $fastx->next_seq){
   my $seq_length = length($seq->sequence);
-  if(length($seq_length) >= $low and length($seq_length) <= $high){
+  if($seq_length >= $low and $seq_length <= $high){
     $seq->print;
   }
 }

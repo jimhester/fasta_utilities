@@ -7,6 +7,15 @@ use strict;
   use Carp;
   use FileBar;
   use Readonly;
+
+  #hack to use autodie with overridden builtins
+  sub close {
+    use autodie qw(close);
+    my ($self) = @_;
+    delete $self->{prev};
+    CORE::close $self->fh;
+  }
+
   use autodie;
 
   Readonly my $COMMENT_CODE => 'CO';
@@ -149,11 +158,6 @@ use strict;
     $self->{current_file} = $file;
   }
 
-  sub close_file {
-    my ($self) = @_;
-    delete $self->{prev};
-    close $self->fh;
-  }
   use namespace::autoclean;
 }
 

@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 06 01:28:48 PM
-# Last Modified: 2012 Dec 24 09:03:06 AM
+# Last Modified: 2013 Feb 08 09:09:26 AM
 # Title:subset_fasta.pl
 # Purpose:subsets a fasta file
 ###############################################################################
