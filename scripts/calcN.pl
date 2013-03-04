@@ -16,9 +16,14 @@ use Pod::Usage;
 my $man  = 0;
 my $help = 0;
 my @Ns;
-my $low=-1;
-my $high=1000e6;
-GetOptions('low|l=i' => \$low, 'high|h=i' => \$high, 'N=s' => \@Ns, 'help|?' => \$help, man => \$man ) or pod2usage(2);
+my $low  = -1;
+my $high = 1000e6;
+GetOptions( 'low|l=i'  => \$low,
+            'high|h=i' => \$high,
+            'N=s'      => \@Ns,
+            'help|?'   => \$help,
+            man        => \$man )
+  or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage( -verbose => 2 ) if $man;
 pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
@@ -32,47 +37,75 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
 
 use ReadFastx;
 
-my %lengths;
-my $fastx = ReadFastx->new();
+my $fastx = ReadFastx->new(files=>\@ARGV);
 
-my $totalLength = 0;
-while ( my $seq = $fastx->next_seq ) {
-  my $length = length( $seq->sequence );
-  if($length >= $low and $length <= $high){
-    push @{ $lengths{$fastx->current_file}{lengths} }, $length;
-    $lengths{$fastx->current_file}{total} += $length;
-  }
-}
+#initialize variables
+my $total = 0;
+my @lengths;
+my $prev_file = '';
 
 print join( "\t", "file", "min", @Ns,"median", "max", "total", "num" ) . "\n";
-for my $file ( sort keys %lengths ) {
-  my $cumSum = 0;
-  my $Nitr = 0;
-  @{$lengths{$file}{lengths}} = sort {$b <=> $a} @{ $lengths{$file}{lengths} };
-  printf "%s\t%g",$file,$lengths{$file}{lengths}[-1];
-  my $totalLength = $lengths{$file}{total};
-  my $itr=0;
-  for my $len ( @{ $lengths{$file}{lengths} } ) {
-      $cumSum += $len;
-      if ( $Nitr < @Ns and $cumSum > $Ns[$Nitr] * .01 * $totalLength ) {
-          printf "\t%g",$len;
-          $Nitr++;
-      }
-      $itr++;
+while ( my $seq = $fastx->next_seq ) {
+
+  #initialize lengths if a new or first file, print previous if new
+  if($fastx->current_file ne $prev_file){
+    if($prev_file ne ''){ #this is only true the first iteration
+      print_statistics($prev_file, \@lengths, $total);
+    }
+    @lengths=();
+    $total=0;
+    $prev_file = $fastx->current_file;
   }
-  while($Nitr < @Ns){ #print all Ns as biggest contig if not done
-    printf "\t%g",$lengths{$file}{lengths}[0];
+
+  my $length = length( $seq->sequence );
+
+  #add length if valid
+  if ( $length >= $low and $length <= $high ) {
+    push @lengths, $length;
+    $total+=$length;
+  }
+}
+#print statistics for the last file
+print_statistics($prev_file, \@lengths, $total);
+
+exit;
+
+sub print_statistics {
+  my ( $file, $lengths, $total ) = @_;
+  my $cumSum = 0;
+  my $Nitr   = 0;
+  @{ $lengths } = sort { $b <=> $a } @{ $lengths };
+  printf "%s\t%g", $file, $lengths[-1];
+  my $itr         = 0;
+  for my $len ( @{ $lengths } ) {
+    $cumSum += $len;
+    if ( $Nitr < @Ns and $cumSum > $Ns[$Nitr] * .01 * $total ) {
+      printf "\t%g", $len;
+      $Nitr++;
+    }
+    $itr++;
+  }
+  while ( $Nitr < @Ns ) {    #print all Ns as biggest contig if not done
+    printf "\t%g", $lengths[0];
     $Nitr++;
   }
-  my $num_lengths = scalar @{ $lengths{$file}{lengths} };
+  my $num_lengths = scalar @{ $lengths };
+
   #true definition of the median
   my $median =
       $num_lengths % 2 == 1
-    ? $lengths{$file}{lengths}[$num_lengths / 2]
-    : ($lengths{$file}{lengths}[int($num_lengths / 2)-1] + $lengths{$file}{lengths}[int($num_lengths / 2)]) / 2;
-  print join("\t", '', map { sprintf("%g", $_) } ($median, $lengths{$file}{lengths}[0], $totalLength, scalar @{$lengths{$file}{lengths}})), "\n";
+    ? $lengths[ $num_lengths / 2 ]
+    : (   $lengths[ int( $num_lengths / 2 ) - 1 ]
+        + $lengths[ int( $num_lengths / 2 ) ] )
+    / 2;
+  print join( "\t", '',
+              map { sprintf( "%g", $_ ) } (
+                                  $median,      $lengths[0],
+                                  $total, scalar @{ $lengths }
+                                          ) ),
+    "\n";
 }
-exit;
+
 ###############################################################################
 # Help Documentation
 ###############################################################################
