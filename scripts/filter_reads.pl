@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 21 10:47:32 AM
-# Last Modified: 2013 Feb 06 01:13:34 PM
+# Last Modified: 2013 Feb 28 12:05:57 PM
 # Title:filter_reads.pl
 # Purpose:given reads and a database, filters the reads which do not map, can
 # also keep the database of reads
@@ -29,7 +29,6 @@ pod2usage("$0: Incorrect number of arguments.") if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
 # Automatically extract compressed files
 ###############################################################################
-@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/; $_ } @ARGV;
 ###############################################################################
 # filter_reads.pl
 ###############################################################################
