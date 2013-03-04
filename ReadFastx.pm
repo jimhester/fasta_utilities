@@ -11,10 +11,10 @@
   sub close {
     use autodie qw(close);
     my ($self) = @_;
-    CORE::close($self->fh);
+    CORE::close($self->{fh});
   }
 
-  use autodie; 
+  use autodie;
 
   sub new {
     my $class = shift;
@@ -74,12 +74,12 @@
 
   sub _set_current_file {
     my ($self, $file) = @_;
+    close $self->{fh} if $self->{fh};
     open my ($fh), $file;
     $self->{fh} = $fh;
     if (not $self->{bar}) {
-      $self->{bar} = FileBar->new(current_file => $file,
-                                  files        => $self->files,
-                                  fh_in        => $self->fh);
+      $self->{bar} = FileBar->new(files        => $self->files,
+                                  fh_in        => $self->{fh});
     }
     else {
       $self->{bar}->fh_in($fh);
