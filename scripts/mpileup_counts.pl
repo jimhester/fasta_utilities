@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # Title:mpileup_counts.pl
 # Created: 2012 Oct 26 08:28:19 AM
-# Modified: 2013 Feb 25 01:48:42 PM
+# Modified: 2013 Mar 25 02:16:11 PM
 # Purpose:parses a mpileup file and gets the basecounts
 # By Jim Hester
 ###############################################################################
@@ -43,6 +43,7 @@ while(<>){
   $reads =~ s/[.,]/$ref/g; #change ref bases to ref letter
   $reads =~ s/\^.//g; #remove read starts and mapping quality
   $reads =~ s/\$//g; #remove read ends
+  my $deleted = $reads =~ s/[*]//g;
   $reads =~ s/[\+\-]([0-9]+)(??{"\\w{$^N}"})//g; #remove indels
 
   #get counts for bases
@@ -53,7 +54,7 @@ while(<>){
     $counts{$base}= $count ? $count : 0;
     $total+=$count;
   }
-  croak if $total != $coverage;
+  croak "$total is not equal to $coverage\n" if $total != $coverage - $deleted;
   #print data
   print join("\t", $chr, $pos, $coverage, $ref,sprintf("%2f", $counts{$ref}/$coverage), map { $counts{$_} } @bases), "\n";
 }
