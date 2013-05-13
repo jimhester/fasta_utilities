@@ -47,7 +47,7 @@ sub FOREIGNBUILDARGS {
   my $fh = exists $args->{fh_out} ? $args->{fh_out} : \*STDERR;
   return { name   => _short_name( $args->{files}[0] ),
            ETA    => 'linear',
-           count  => _files_size( $args->{files} ),
+           count  => 0,#_files_size( $args->{files} ),
            remove => 1,
            fh     => $fh, };
 }
@@ -67,6 +67,7 @@ sub BUILD {
 
     $self->minor(0);
     $self->max_update_rate($UPDATE);
+    $self->target(_files_size($self->files));
     $SIG{VTALRM} = sub { $self->_file_update() };
     setitimer( ITIMER_VIRTUAL, $UPDATE, $UPDATE );
   }
@@ -156,6 +157,7 @@ sub _file_update {
 
 sub _short_name {
   my $name = shift;
+  return '' unless $name;
   $name =~ s{.*/}{};
   return $name;
 }

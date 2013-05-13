@@ -44,10 +44,10 @@
 
       #if no files read from stdin
       $self->{files} = ['-'] unless @{$self->files};
-
+      $self->{file_itr} = 0;
+      $self->current_file($self->files->[0]);
     }
-    $self->{file_itr} = 0;
-    $self->current_file($self->files->[0]);
+    $self->{reader} = $self->_create_reader();
   }
 
   sub current_file {
@@ -85,14 +85,17 @@
       $self->{bar}->fh_in($fh);
       $self->{bar}->current_file($file);
     }
-    my $first_char = $self->_get_first($self->{fh});
-    $self->{reader} =
-        $first_char eq ">" ? sub { $self->_read_fasta }
-      : $first_char eq "@" ? sub { $self->_read_fastq }
-      :                      croak "Not a fasta or fastq file, $first_char is not > or @";
     $self->{current_file} = $file;
   }
 
+  sub _create_reader{
+    my($self) = @_;
+    my $first_char = $self->_get_first($self->{fh});
+    my $reader =    $first_char eq ">" ? sub { $self->_read_fasta }
+      : $first_char eq "@" ? sub { $self->_read_fastq }
+      :                      croak "Not a fasta or fastq file, $first_char is not > or @";
+    return $reader;
+  }
   sub _get_first{
     my($self, $fh) = @_;
     local $/ = \1;
