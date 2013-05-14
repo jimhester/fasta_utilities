@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 21 10:47:32 AM
-# Last Modified: 2013 Feb 28 12:05:57 PM
+# Last Modified: 2013 Apr 11 03:01:01 PM
 # Title:filter_reads.pl
 # Purpose:given reads and a database, filters the reads which do not map, can
 # also keep the database of reads
@@ -73,7 +73,7 @@ sub run_paired {
       print $fastq1 $align1->fastq;
       print $fastq2 $align2->fastq;
     }
-    if ($keep_align) {
+    elsif ($keep_align) {
       print $bam_out $align1->raw;
       print $bam_out $align2->raw;
     }
@@ -94,7 +94,9 @@ sub run_single {
     if ($align->flag & 0x4) {    #unmapped
       print $align->fastq;
     }
-    print $bam_out $align->raw if $keep_align;
+    else{
+      print $bam_out $align->raw if $keep_align;
+    }
   }
   close $bam_out if $keep_align;
 }

@@ -5,7 +5,7 @@ use autodie;
 ###############################################################################
 # Title:mpileup_counts.pl
 # Created: 2012 Oct 26 08:28:19 AM
-# Modified: 2013 Apr 04 09:30:28 AM
+# Modified: 2013 Apr 04 09:31:02 AM
 # Purpose:parses a mpileup file and gets the basecounts
 # By Jim Hester
 ###############################################################################
@@ -38,7 +38,7 @@ use Carp;
 #setup and print headers
 my @bases = qw(A C G T N);
 print join( "\t",
-            "chromosome", "position", "coverage", "deleted", "reference",
+            "chromosome", "position", "coverage", "reference",
             "raf", @bases )
   . "\n";
 
@@ -74,7 +74,7 @@ while (<>) {
 
   #print data
   print join( "\t",
-              $chr, $pos, $coverage, $deleted, $ref,
+              $chr, $pos, $coverage, $ref,
               sprintf( "%2f", $counts{$ref} / $total ),
               map { $counts{$_} } @bases ),
     "\n";

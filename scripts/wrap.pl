@@ -16,7 +16,7 @@ use Pod::Usage;
 my $man = 0;
 my $help = 0;
 my $width = 80;
-GetOptions('width=i' => \$width, 'help|?' => \$help, man => \$man) or pod2usage(2);
+GetOptions('n|l|width=i' => \$width, 'help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));

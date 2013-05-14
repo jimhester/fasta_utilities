@@ -17,7 +17,9 @@ my $man = 0;
 my $help = 0;
 my $suffix ='';
 my $prefix = '';
-GetOptions('prefix=s' => \$prefix, 'suffix=s' => \$suffix, 'help|?' => \$help, man => \$man) or pod2usage(2);
+my $seperator = '|';
+my $space = '_';
+GetOptions('space=s' => \$space, 'seperator=s' => \$seperator, 'prefix=s' => \$prefix, 'suffix=s' => \$suffix, 'help|?' => \$help, man => \$man) or pod2usage(2);
 pod2usage(2) if $help;
 pod2usage(-verbose => 2) if $man;
 pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
@@ -31,9 +33,10 @@ my $fastx = ReadFastx->new();
 
 while(my $seq = $fastx->next_seq()){
   my $header = $seq->header;
-  $seq->header = join("|",$prefix, $header, $suffix);
-  $header =~ tr/ /|/;
-  $header =~ tr/+//d;
+  $header = $prefix . $seperator . $header if $prefix;
+  $header = $suffix . $seperator . $header if $suffix;
+  $header =~ s/ /$space/g;
+  $header =~ tr/-+,'//d;
   $seq->header($header);
   $seq->print;
 }

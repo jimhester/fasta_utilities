@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2013 Jan 14 01:15:46 PM
-# Last Modified: 2013 Jan 14 01:24:22 PM
+# Last Modified: 2013 Apr 11 01:29:42 PM
 # Title:size.pl
 # Purpose:Get number of sequences and total size
 ###############################################################################
@@ -42,11 +42,14 @@ while ( my $seq = $fastx->next_seq ) {
     print join( "\t", $prev_filename, $current_num, $current_size ), "\n";
     $total_size += $current_size;
     $total_num += $current_num;
+    ( $current_size, $current_num ) = ( 0, 0 );
+    $prev_filename = $fastx->current_file();
   }
   $current_size += length( $seq->sequence );
   $current_num++;
 }
 print join( "\t", $prev_filename, $current_num, $current_size ), "\n";
+print join( "\t", 'total', $total_num, $total_size ), "\n" if $total_num;
 ###############################################################################
 # Help Documentation
 ###############################################################################

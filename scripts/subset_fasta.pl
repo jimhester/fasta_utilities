@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 06 01:28:48 PM
-# Last Modified: 2013 Feb 08 09:09:26 AM
+# Last Modified: 2013 Apr 18 12:57:56 PM
 # Title:subset_fasta.pl
 # Purpose:subsets a fasta file
 ###############################################################################
@@ -50,18 +50,14 @@ while (my $seq = $fastx->next_seq) {
   }
   my $pos    = 0;
   my $length = length($seq->sequence);
-  while ($pos < $length - $step) {
+  my $stop = $only_full ? $length - $size : $length;
+  while ($pos < $stop) {
     my $str = substr($seq->sequence, $pos, $size);
     unless($n_max and $str =~ tr/N/N/ > $n_max){
       my $header = $seq->header . ':' . $pos . '-' . ($pos + $size);
       print ">", $header, "\n", $str, "\n";
     }
     $pos += $step;
-  }
-  if (not $only_full and $pos < $length) {
-    my $str = substr($seq->sequence, $pos, $length - $pos);
-    my $header = $seq->header . ':' . $pos . '-' . $length;
-    print ">", $header, "\n", $str, "\n";
   }
 }
 ###############################################################################
