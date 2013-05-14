@@ -26,7 +26,7 @@
       $self = {@_};
     }
     $self = bless $self, $class;
-    $self->{files} = \@ARGV unless exists $self->{files};
+    $self->{files} = \@ARGV unless exists $self->{files} or exists $self->{fh};
     $self->BUILD($self);
     return $self;
   }

@@ -1,10 +1,11 @@
 #!/usr/bin/env perl
 use warnings;
 use strict;
+use autodie qw(:all);
 ###############################################################################
 # By Jim Hester
 # Created: 2013 Jan 07 02:48:11 PM
-# Last Modified: 2013 Jan 17 09:57:55 AM
+# Last Modified: 2013 May 14 03:17:03 PM
 # Title:sort.pl
 # Purpose:sort fastx files
 ###############################################################################
@@ -17,34 +18,49 @@ my $help = 0;
 my $length;
 my $header;
 my $sequence;
-my $sequence_size = 100;
+my $sequence_size;
 my $custom;
-GetOptions('length'        => \$length,
-           'header'        => \$header,
-           'sequence'      => \$sequence,
-           'sequence_size' => \$sequence_size,
-           'custom=s'      => \$custom,
-           man             => \$man)
+my $paired;
+my $prefix;
+my $force;
+GetOptions( 
+  'force' => \$force,
+            'prefix=s' => \$prefix,
+            'paired' => \$paired,
+            'length'        => \$length,
+            'header'        => \$header,
+            'sequence'      => \$sequence,
+            'sequence_size=i' => \$sequence_size,
+            'custom=s'      => \$custom,
+            man             => \$man )
   or pod2usage(2);
 pod2usage(2) if $help;
-pod2usage(-verbose => 2) if $man;
-pod2usage("$0: No files given.") if ((@ARGV == 0) && (-t STDIN));
+pod2usage( -verbose => 2 ) if $man;
+pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
 ###############################################################################
 # Automatically extract compressed files
 ###############################################################################
-@ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/; $_ } @ARGV;
+@ARGV = map {
+  s/(.*\.gz)\s*$/pigz -dc < $1|/;
+  s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;
+  $_
+} @ARGV;
 ###############################################################################
 # sort.pl
 ###############################################################################
 use ReadFastx;
 
-#child unmerge
-unmerge();
+#child process unmerge
+if($paired){
+  paired_unmerge();
+}else{
+  single_unmerge();
+}
 
 #parent
 my @sort_args;
 
-push @sort_args, '-n' if($length);
+push @sort_args, '-n' if ($length);
 
 @ARGV = grep {
   if (/^-/) {
@@ -56,31 +72,132 @@ push @sort_args, '-n' if($length);
   }
 } @ARGV;
 
-open STDOUT, "| sort -z @sort_args";
 
-my $fastx = ReadFastx->new();
-while (my $seq = $fastx->next_seq) {
-  my $sort_term =
-      $length ? length($seq->sequence)
-    : $header ? $seq->header
-    : $sequence ? substr($seq->sequence, 0, $sequence_size)
-    : $custom   ? eval "$custom"
-    :             die "Must provide a sort term";
-  die $@ if $@;
-  print $sort_term, "\1", $seq->string, "\0";
+if($paired){
+  paired();
+}else{
+  single();
+}
+exit;
+
+sub single{
+  my $key = get_key();
+
+  open STDOUT, "| sort -k$key,$key -t '\t' @sort_args";
+
+  my $fastx = ReadFastx->new();
+  while ( my $seq = $fastx->next_seq ) {
+    my $sort_term = get_sort_term($seq);
+    my $quality = $seq->can('quality') ? $seq->quality : '';
+    print join( "\t", $sort_term, $seq->header, $seq->sequence, $seq->quality ),
+      "\n";
+  }
+}
+sub paired{
+  my $key = get_key();
+  my $key2 = $key + 4;
+
+  my($file1, $file2) = @ARGV;
+
+  pod2usage("$0:cannot use --paired without explicit files") unless $file2;
+
+  open STDOUT, "| sort -k$key,$key -k$key2,$key2 -t '\t' @sort_args";
+
+  my $fastx1 = ReadFastx->new($file1);
+  my $fastx2 = ReadFastx->new($file2);
+  while ( my $seq1 = $fastx1->next_seq
+     and my $seq2 = $fastx2->next_seq ) {
+    my $sort_term1 = get_sort_term($seq1);
+    my $sort_term2 = get_sort_term($seq2);
+    my $quality1 = $seq1->can('quality') ? $seq1->quality : '';
+    my $quality2 = $seq2->can('quality') ? $seq2->quality : '';
+    print join( "\t", $sort_term1, $seq1->header, $seq1->sequence, $quality1
+    , $sort_term2, $seq2->header, $seq2->sequence, $quality2),
+      "\n";
+  }
 }
 
-sub unmerge {
-  return if my $pid = open(STDOUT, "|-");    # return if parent
+sub get_sort_term {
+  my ($seq) = @_;
+  return length( $seq->sequence ) if $length;
+  return substr( $seq->sequence, 0, $sequence_size ) if $sequence_size;
+  return eval "$custom";
+  pod2usage("$0: Must provide a sort term");
+}
+
+sub get_key {
+  return 1 if $length or $custom;
+  return 2 if $header;
+  if ($sequence) {
+    return 1 if $sequence_size;
+    return 3;
+  }
+  pod2usage("$0: Must provide a sort term");
+}
+
+sub paired_unmerge {
+  return if my $pid = open( STDOUT, "|-" );    # return if parent
   die "cannot fork: $!" unless defined $pid;
-  local $/ = "\0";
+
+  my($file1, $file2) = @ARGV;
+
+  pod2usage("$0:cannot use --paired without explicit files") unless $file2;
+
+  open my $out1, ">", generate_filename($file1,'sorted');
+  open my $out2, ">", generate_filename($file2,'sorted');
+
   while (<STDIN>) {
-    my ($search, $record) = split /[\1\0]/;
-    print $record;
+    chomp;
+    my ( $search, $header, $sequence, $quality,
+         $search2, $header2, $sequence2, $quality2
+    ) = split /\t/;
+    if ($quality) {
+      ReadFastx::Fastq->new( header   => $header,
+                             sequence => $sequence,
+                             quality  => $quality )->print(fh=>$out1);
+      ReadFastx::Fastq->new( header   => $header2,
+                             sequence => $sequence2,
+                             quality  => $quality2 )->print(fh=>$out2);
+    }
+    elsif ($header) {
+      ReadFastx::Fasta->new( header => $header, sequence => $sequence )
+        ->print(fh => $out1);
+      ReadFastx::Fasta->new( header => $header2, sequence => $sequence2 )
+        ->print(fh => $out2);
+    }
   }
   exit;
 }
 
+sub single_unmerge {
+  return if my $pid = open( STDOUT, "|-" );    # return if parent
+  die "cannot fork: $!" unless defined $pid;
+  while (<STDIN>) {
+    chomp;
+    my ( $search, $header, $sequence, $quality ) = split /\t/;
+    if ($quality) {
+      ReadFastx::Fastq->new( header   => $header,
+                             sequence => $sequence,
+                             quality  => $quality )->print();
+    }
+    elsif ($header) {
+      ReadFastx::Fasta->new( header => $header, sequence => $sequence )
+        ->print();
+    }
+  }
+  exit;
+}
+
+sub generate_filename{
+  my($filename, $new) = @_;
+
+  my($local_prefix, $suffix) = $filename =~ m{(.+)[.](.*)};
+
+  $local_prefix = $prefix if $prefix;
+  my $newfile = "$local_prefix.$new.$suffix";
+  die "$newfile exists" if -e $newfile and not $force;
+  return $newfile;
+}
 ###############################################################################
 # Help Documentation
 ###############################################################################
