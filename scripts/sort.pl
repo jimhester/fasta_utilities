@@ -5,7 +5,7 @@ use autodie qw(:all);
 ###############################################################################
 # By Jim Hester
 # Created: 2013 Jan 07 02:48:11 PM
-# Last Modified: 2013 May 14 03:17:03 PM
+# Last Modified: 2013 Jul 22 04:03:27 PM
 # Title:sort.pl
 # Purpose:sort fastx files
 ###############################################################################
@@ -119,9 +119,10 @@ sub paired{
 
 sub get_sort_term {
   my ($seq) = @_;
+  return '' if $sequence or $header;
   return length( $seq->sequence ) if $length;
   return substr( $seq->sequence, 0, $sequence_size ) if $sequence_size;
-  return eval "$custom";
+  return eval "$custom" if $custom;
   pod2usage("$0: Must provide a sort term");
 }
 
