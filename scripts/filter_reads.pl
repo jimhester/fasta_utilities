@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 21 10:47:32 AM
-# Last Modified: 2013 Apr 11 03:01:01 PM
+# Last Modified: 2013 Jul 29 03:23:47 PM
 # Title:filter_reads.pl
 # Purpose:given reads and a database, filters the reads which do not map, can
 # also keep the database of reads
@@ -18,9 +18,14 @@ my $help      = 0;
 my $num_cores = no_of_cores_gnu_linux();
 my $keep_align;
 my $only_mapped;
-GetOptions('keep'   => \$keep_align,
+my $prefix;
+my $log_file;
+GetOptions(
+          'log=s' => \$log_file,
+          'keep'   => \$keep_align,
            'np|j=i' => \$num_cores,
            'help|?' => \$help,
+           'prefix=s' => \$prefix,
            man      => \$man)
   or pod2usage(2);
 pod2usage(2) if $help;
@@ -32,6 +37,8 @@ pod2usage("$0: Incorrect number of arguments.") if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
 # filter_reads.pl
 ###############################################################################
+
+my $log_fh = log_fh();
 
 use Carp;
 use ReadSam;
@@ -52,18 +59,32 @@ else {
 }
 exit;
 
+#if log_file exists, open fh to it, otherwise use STDERR
+sub log_fh{
+  if($log_file){
+    open my $fh, ">", $log_file;
+    return $fh;
+  }
+  return \*STDERR;
+}
+
 sub run_paired {
   my ($file1, $file2) = @{$_[0]};
+  my ($out1) = $prefix ? $prefix.'-1-unmapped.fastq.gz' : '';
+  my ($out2) = $prefix ? $prefix.'-2-unmapped.fastq.gz' : '';
+  my %counts;
+
   my $cores = int($num_cores / 2);
 
   my $sam1   = ReadSam->new(files => ["bowtie2 @ARGV -p $cores --reorder -x $index -U $file1 |"]);
-  my $fastq1 = fastq_out($file1);
+  my $fastq1 = fastq_out($file1, $out1);
   my $sam2   = ReadSam->new(files => ["bowtie2 @ARGV -p $cores --reorder -x $index -U $file2 |"]);
-  my $fastq2 = fastq_out($file2);
+  my $fastq2 = fastq_out($file2, $out2);
 
   my $bam_out;
   if ($keep_align) {
-    $bam_out = bam_out($file1);
+    my $bam_out_file = $prefix ? $prefix . '-mapped.bam' : '';
+    $bam_out = bam_out($file1, $bam_out_file);
     print $bam_out $sam1->header()->raw;
   }
   while (    defined(my $align1 = $sam1->next_align)
@@ -73,31 +94,61 @@ sub run_paired {
       print $fastq1 $align1->fastq;
       print $fastq2 $align2->fastq;
     }
-    elsif ($keep_align) {
-      print $bam_out $align1->raw;
-      print $bam_out $align2->raw;
+    else {
+      if ($keep_align) {
+        print $bam_out $align1->raw;
+        print $bam_out $align2->raw;
+      }
+      $counts{$align1->rname}++;
+      $counts{$align2->rname}++;
     }
+    $counts{total}+=2;
   }
+  print_counts(\%counts, $log_fh);
   close $bam_out if $keep_align;
 }
 
+sub print_counts{
+  my($count_ref, $fh) = @_;
+  $fh = \*STDOUT unless $fh;
+  my $sum=0;
+  for my $chr( grep { !/total/ } keys_descending($count_ref)){
+    print $fh join("\t", $chr, percent_string($count_ref->{$chr}, $count_ref->{total})), "\n";
+    $sum+=$count_ref->{$chr};
+  }
+  print $fh "unmapped\t" , percent_string($count_ref->{total}-$sum,$count_ref->{total}),"\n";
+  print $fh "total\t" , percent_string($count_ref->{total},$count_ref->{total}),"\n";
+}
+sub percent_string{
+  my($count, $total) = @_;
+  return sprintf "%i\t%.2f%%", $count, $count / $total * 100;
+}
+sub keys_descending {
+  my($hash_ref) = @_;
+  return reverse sort  { $hash_ref->{$a} <=> $hash_ref->{$b} } keys %{ $hash_ref };
+}
 sub run_single {
   my ($file) = @{$_[0]};
   $file = "/dev/stdin" if not $file;
   my $sam = ReadSam->new(files => ["bowtie2 @ARGV -p $num_cores -x $index -U $file |"]);
   my $bam_out;
+  my %counts;
   if ($keep_align) {
-    $bam_out = bam_out($file);
+    my $bam_out_file = $prefix ? $prefix . '-mapped.bam' : '';
+    $bam_out = bam_out($file, $bam_out_file);
     print $bam_out $sam->header()->raw;
   }
-  while (my $align = $sam->readline) {
+  while (my $align = $sam->next_align) {
     if ($align->flag & 0x4) {    #unmapped
       print $align->fastq;
     }
     else{
       print $bam_out $align->raw if $keep_align;
+      $counts{$align->rname}++;
     }
+    $counts{total}++;
   }
+  print_counts(\%counts, $log_fh);
   close $bam_out if $keep_align;
 }
 
@@ -119,8 +170,7 @@ sub bam_out {
 
 sub replace_extension {
   my ($file, $replace) = @_;
-  $file =~ s{\..*}{};    #remove existing extension
-  $file .= "$replace";
+  $file =~ s{\..*}{$replace};    #remove existing extension
   return $file;
 }
 
