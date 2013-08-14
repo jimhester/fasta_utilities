@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Date:05/15/2012
-# Last Modified: 2013 Apr 17 02:36:41 PM
+# Last Modified: 2013 Jul 11 02:46:22 PM
 # Title:fetch_sra.pl
 # Purpose:this script downloads the sra sequences from NCBI using aspera and outputs a fastq file
 ###############################################################################
@@ -35,7 +35,7 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 my $link = shift;
 my $description = shift;
 
-if($link =~ m{ftp://([^/]+)(/.+/)(.+)}){
+if($link =~ m{ftp://([^/]+)(/.+/)([^/]+)}){
   my($server,$path,$dataset)=($1,$2,$3);
   my $command = "$asperaDir/connect/bin/ascp -o Overwrite=never -k2 -i $asperaDir/connect/etc/asperaweb_id_dsa.putty -QT -L . -l 500m anonftp\@$server:$path$dataset .";
   print STDERR $command, "\n";

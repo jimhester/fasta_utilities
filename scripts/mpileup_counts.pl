@@ -5,7 +5,7 @@ use autodie;
 ###############################################################################
 # Title:mpileup_counts.pl
 # Created: 2012 Oct 26 08:28:19 AM
-# Modified: 2013 Apr 04 09:31:02 AM
+# Modified: 2013 Jul 22 12:46:09 PM
 # Purpose:parses a mpileup file and gets the basecounts
 # By Jim Hester
 ###############################################################################
@@ -75,7 +75,7 @@ while (<>) {
   #print data
   print join( "\t",
               $chr, $pos, $coverage, $ref,
-              sprintf( "%2f", $counts{$ref} / $total ),
+              sprintf( "%2f", $total > 0 ? $counts{$ref} / $total : 0),
               map { $counts{$_} } @bases ),
     "\n";
 }

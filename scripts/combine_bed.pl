@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2012 Dec 13 03:49:14 PM
-# Last Modified: 2013 Jan 14 03:31:11 PM
+# Last Modified: 2013 May 16 03:53:00 PM
 # Title:combine_bed.pl
 # Purpose:Combine bed files
 ###############################################################################
@@ -53,7 +53,7 @@ my @fhs = map { open_sorted_bed($_); } @files;
 my @lines = map { read_line($_); } @fhs;
 
 #get the width of the data by counting the tabs
-my @data_widths = map { $_->{data} =~ tr/\t/\t/ } @lines;
+my @data_widths = map { $_->{data} =~ tr/\t/\t/ + 1} @lines;
 
 print_headers(\@ARGV, \@data_widths) unless $no_headers;
 

@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # By Jim Hester
 # Created: 2013 Jan 21 09:39:48 AM
-# Last Modified: 2013 Jan 28 03:41:35 PM
+# Last Modified: 2013 May 29 09:31:48 AM
 # Title:gff2bed.pl
 # Purpose:converts gff3 to bed files, either simple or extended
 ###############################################################################
@@ -18,10 +18,12 @@ my $extended;
 my $color     = "255,0,0";
 my $group_var = "Parent";
 my $type_filter;
+my $gtf;
 GetOptions( 'color=s', \$color,
             'extended' => \$extended,
             'filter=s' => \$type_filter,
             'group=s'  => \$group_var,
+            'gtf' => \$gtf,
             'help|?'   => \$help,
             man        => \$man )
   or pod2usage(2);
@@ -40,9 +42,7 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
 # gff2bed.pl
 ###############################################################################
 
-my $gff_file = shift;
-
-my %genes = parse_gff($gff_file);
+my %genes = $gtf ? parse_gtf() : parse_gff();
 
 if ($extended) {
   extended_bed();
@@ -104,16 +104,55 @@ sub simple_bed {
   }
 }
 
-sub parse_gff {
-  my ($filename) = @_;
+sub parse_gtf {
 
   my @colnames = qw(seqid source type start end score strand phase);
 
   my %genes;
 
-  open my $in, "<", "$filename" or die "$!:Could not open $filename\n";
+  use FileBar;
+  my $bar = FileBar->new();
+  while (<>) {
+    next if /^#/;
+    chomp;
+    my $itr = 0;
+    my %line;
+    my $attributes;
+    for my $field ( split /\t/ ) {
+      if ( $itr < @colnames ) {
+        $field-- if ( $colnames[$itr] eq 'start' );    #make 0 based
+        $line{ $colnames[$itr] } = $field;
+      }
+      else {
+        $attributes .= $field;
+      }
+      $itr++;
+    }
+    if ($attributes) {
+      while ( $attributes =~ m{([^"\s]+)[\s"]+([^"]*)"[^;]*;*}g ) {
+        my ( $tag, $value ) = ( $1, $2 );
+        $line{attributes}{$tag} = $value;
+      }
+    }
+    my $group_val =
+      exists $line{attributes}{$group_var}
+      ? $line{attributes}{$group_var}
+      : 'NA';
 
-  while (<$in>) {
+    if(not $type_filter or $type_filter eq $line{type}){
+      push @{ $genes{ $line{seqid} }{$group_val} }, \%line;
+    }
+  }
+  return %genes;
+}
+sub parse_gff {
+  my @colnames = qw(seqid source type start end score strand phase);
+
+  my %genes;
+
+  use FileBar;
+  my $bar = FileBar->new();
+  while () {
     last if /^##FASTA/;
     next if /^#/;
     chomp;

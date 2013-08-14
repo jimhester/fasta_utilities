@@ -5,7 +5,7 @@ use autodie qw(:all);
 ###############################################################################
 # By Jim Hester
 # Created: 2013 Jan 07 02:48:11 PM
-# Last Modified: 2013 Jul 22 04:03:27 PM
+# Last Modified: 2013 Aug 14 12:22:10 PM
 # Title:sort.pl
 # Purpose:sort fastx files
 ###############################################################################
@@ -89,7 +89,7 @@ sub single{
   while ( my $seq = $fastx->next_seq ) {
     my $sort_term = get_sort_term($seq);
     my $quality = $seq->can('quality') ? $seq->quality : '';
-    print join( "\t", $sort_term, $seq->header, $seq->sequence, $seq->quality ),
+    print join( "\t", $sort_term, $seq->header, $seq->sequence, $quality ),
       "\n";
   }
 }
