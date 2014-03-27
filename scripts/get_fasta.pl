@@ -4,7 +4,7 @@ use strict;
 ###############################################################################
 # Title:get_fasta.pl
 # Created: 2012 Oct 23 03:40:48 PM
-# Modified: 2013 Jan 31 10:37:21 AM
+# Modified: 2014 Mar 27 01:24:41 PM
 # Purpose:gets fasta with the given headers
 # By Jim Hester
 ###############################################################################
@@ -40,34 +40,38 @@ my @search;
 
 use List::MoreUtils qw(any);
 
-my %search;
-if ($search_file) {
-  open IN, "$search_file" or die "$!:Could not open $search_file\n";
-  while (<IN>) {
-    chomp;
-    push @search, $_;
-  }
-}
-else {
-  my $search = shift;
-  @search = split /,/, $search;
-}
-
-map { $search{$_} = '' } @search;
+my %search = map { $_ => '' } ($search_file ? read_search_file($search_file) : split(/,/, shift));
 
 use ReadFastx;
 my $fastx = ReadFastx->new();
 while (my $seq = $fastx->next_seq) {
-  if (exists $search{$seq->header} xor ($reverse and $exact)){
-    $seq->print;
-  }
-  elsif (!$exact) {
-    if ($reverse xor any { $seq->header =~ /$_/ } @search) {
-      $seq->print;
-    }
-  }
+  my $found = $exact ? find_exact($seq->header) : find_regex($seq->header);
+  $found = not $found if $reverse;
+  $seq->print if $found;
 }
 
+sub read_search_file{
+  my ($filename) = @_;
+  my @vals;
+  open IN, "$filename" or die "$!:Could not open $filename\n";
+  while (<IN>) {
+    chomp;
+    push @vals, $_;
+  }
+  return @vals;
+}
+
+sub find_exact{
+  my($header) = @_;
+
+  return exists $search{$header}
+}
+
+sub find_regex{
+  my($header) = @_;
+
+  return any { $header =~ /$_/ } keys %search;
+}
 ###############################################################################
 # Help Documentation
 ###############################################################################
