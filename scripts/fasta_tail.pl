@@ -40,6 +40,9 @@ croak "tail_start must be between 0 and 1, is $tail_start" if $tail_start > 1 or
 
 my @bin;
 
+use FindBin;
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 my $fastx = ReadFastx->new();
 my $count;

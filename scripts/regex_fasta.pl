@@ -39,6 +39,9 @@ pod2usage("$0: No files given.") if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
 @ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/; $_ } @ARGV;
 ###############################################################################
+use FindBin;
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 
 #if no arguments are supplied, assume grepping for headers

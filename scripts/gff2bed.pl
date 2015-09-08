@@ -110,6 +110,9 @@ sub parse_gtf {
 
   my %genes;
 
+  use FindBin;
+  use File::Spec;
+  use File::Spec->catdir(lib $FindBin::RealBin, '/../');
   use FileBar;
   my $bar = FileBar->new();
   while (<>) {

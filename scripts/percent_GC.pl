@@ -28,6 +28,9 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # percent_GC.pl
 ###############################################################################
 
+use FindBin;
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 
 my $totalGC=0;

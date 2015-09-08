@@ -48,6 +48,9 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
 ###############################################################################
 # sort.pl
 ###############################################################################
+use FindBin;
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 
 #child process unmerge

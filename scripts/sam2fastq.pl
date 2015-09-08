@@ -26,6 +26,9 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # sam2fastq.pl
 ###############################################################################
 
+use FindBin;
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadSam;
 my $sam = ReadSam->new();
 while(my $align = $sam->next_align){

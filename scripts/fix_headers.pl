@@ -28,6 +28,9 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 ###############################################################################
 # /home/hesterj/fastaUtilities/fix_headers.pl
 ###############################################################################
+use FindBin;
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 
 my $fastx = ReadFastx->new();
