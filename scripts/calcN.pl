@@ -36,7 +36,8 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
 @Ns = sort { $a <=> $b } @Ns;
 
 use FindBin;
-use lib $FindBin::RealBin."/../";
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 
 my $fastx = ReadFastx->new(files=>\@ARGV);

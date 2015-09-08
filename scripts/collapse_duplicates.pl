@@ -38,7 +38,8 @@ sub single{
   open my ($fh), "sort.pl $sort_args @ARGV |";
 
   use FindBin;
-  use lib $FindBin::RealBin."/../";
+  use File::Spec;
+  use File::Spec->catdir(lib $FindBin::RealBin, '/../');
   use ReadFastx;
   my $fastx = ReadFastx->new(fh => $fh);
   my $prev = $fastx->next_seq;

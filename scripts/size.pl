@@ -30,7 +30,8 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
 # size.pl
 ###############################################################################
 use FindBin;
-use lib $FindBin::RealBin."/../";
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 
 my ( $total_size, $total_num ) = ( 0, 0 );

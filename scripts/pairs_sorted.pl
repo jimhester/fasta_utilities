@@ -35,7 +35,8 @@ my($file1,$file2) = @ARGV;
 ($extension) = $file1 =~ /\.([^\.]+)/ unless $extension;
 
 use FindBin;
-use lib $FindBin::RealBin."/../";
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 
 my($seq1,$seq2);

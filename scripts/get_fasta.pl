@@ -43,7 +43,8 @@ use List::MoreUtils qw(any);
 my %search = map { $_ => '' } ($search_file ? read_search_file($search_file) : split(/,/, shift));
 
 use FindBin;
-use lib $FindBin::RealBin."/../";
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 my $fastx = ReadFastx->new();
 while (my $seq = $fastx->next_seq) {

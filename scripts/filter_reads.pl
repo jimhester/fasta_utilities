@@ -42,7 +42,8 @@ my $log_fh = log_fh();
 
 use Carp;
 use FindBin;
-use lib $FindBin::RealBin."/../";
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadSam;
 
 my $index = shift;

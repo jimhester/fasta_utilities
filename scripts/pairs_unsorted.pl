@@ -26,7 +26,8 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 my %headers;
 
 use FindBin;
-use lib $FindBin::RealBin."/../";
+use File::Spec;
+use lib File::Spec->catdir($FindBin::RealBin, '/../');
 use ReadFastx;
 my $fastx1 = ReadFastx->new(shift);
 while(my $seq = $fastx1->next_seq){
