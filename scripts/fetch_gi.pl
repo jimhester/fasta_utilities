@@ -40,6 +40,8 @@ pod2usage("$0: No files given.") if ( ( @ARGV == 0 ) && ( -t STDIN ) );
 # fetch_gi.pl
 ###############################################################################
 use Term::ProgressBar;
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 
 @gis = split /,/, join( ',', @gis );

@@ -57,6 +57,8 @@ if ( not $prefix ) {
   }
 }
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 
 my $fastx = ReadFastx->new();

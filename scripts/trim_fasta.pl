@@ -52,6 +52,8 @@ if(@mott){
 
 #$bwa = 20 if $bwa == 0;
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 
 my $file = ReadFastx->new();

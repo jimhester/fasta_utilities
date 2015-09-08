@@ -26,6 +26,8 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 
 @ARGV = map { s/(.*\.gz)\s*$/pigz -dc < $1|/; s/(.*\.bz2)\s*$/pbzip2 -dc < $1|/;$_ } @ARGV;
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 
 my $fastx = ReadFastx->new();

@@ -37,7 +37,9 @@ while(<SIZE>){
 close SIZE;
 my %finalSizes = ();
 my $sizeSoFar = 0;
-use chrSort;
+use FindBin;
+use lib $FindBin::RealBin."/../";
+use SortChr;
 my @chrs = sort chrAsc keys %sizes;
 print STDERR "@chrs\n";
 for my $chr(@chrs){

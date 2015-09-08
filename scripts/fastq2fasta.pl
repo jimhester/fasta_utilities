@@ -25,6 +25,8 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # fastq2fasta.pl
 ###############################################################################
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 my $fastx = ReadFastx->new();
 while(my $seq = $fastx->next_seq){

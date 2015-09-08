@@ -26,6 +26,8 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # size_select.pl
 ###############################################################################
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 my $fastx = ReadFastx->new();
 while(my $seq = $fastx->next_seq){

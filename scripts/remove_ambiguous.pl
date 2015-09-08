@@ -29,6 +29,8 @@ pod2usage("$0: No files given.") if ((@ARGV == 0) && (-t STDIN));
 # remove_ambiguous.pl
 ###############################################################################
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 
 my %mapping = ('[MRWVHDN]' => 'A', '[YKB]' => 'T', S => 'C');

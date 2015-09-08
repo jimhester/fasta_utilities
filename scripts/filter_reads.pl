@@ -41,6 +41,8 @@ pod2usage("$0: Incorrect number of arguments.") if ((@ARGV == 0) && (-t STDIN));
 my $log_fh = log_fh();
 
 use Carp;
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadSam;
 
 my $index = shift;

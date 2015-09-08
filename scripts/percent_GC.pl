@@ -28,6 +28,8 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # percent_GC.pl
 ###############################################################################
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 
 my $totalGC=0;

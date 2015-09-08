@@ -23,6 +23,8 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # /home/hesterj/fastaUtilities/reverse_complement.pl
 ###############################################################################
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadFastx;
 
 my $file = ReadFastx->new();

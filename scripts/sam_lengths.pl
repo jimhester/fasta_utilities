@@ -24,6 +24,8 @@ pod2usage("$0: No files given.")  if ((@ARGV == 0) && (-t STDIN));
 # sam_lengths.pl
 ###############################################################################
 
+use FindBin;
+use lib $FindBin::RealBin."/../";
 use ReadSam;
 my $sam = ReadSam->new();
 while(my $align = $sam->next_align){
