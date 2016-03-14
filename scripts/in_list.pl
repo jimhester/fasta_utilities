@@ -53,9 +53,10 @@ print STDERR "number in list ".scalar(keys %headers)."\n";
 my $fastx = ReadFastx->new();
 
 my($total,$count) = (1,0);
+my $h = "";
 while(my $seq = $fastx->next_seq){
-  ($seq->header) = split /[\s\/]+/,$seq->header;
-  my $found = exists $headers{$seq->header};
+  ($h) = split /[\s\/]+/,$seq->header;
+  my $found = exists $headers{$h};
   if($found xor $inverse){
     $seq->print;
     $count++;
