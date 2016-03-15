@@ -54,8 +54,8 @@ my $fastx = ReadFastx->new();
 
 my($total,$count) = (1,0);
 while(my $seq = $fastx->next_seq){
-  ($seq->header) = split /[\s\/]+/,$seq->header;
-  my $found = exists $headers{$seq->header};
+  my ($header) = split /[\s\/]+/,$seq->header;
+  my $found = exists $headers{$header};
   if($found xor $inverse){
     $seq->print;
     $count++;
