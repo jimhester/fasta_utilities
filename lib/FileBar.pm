@@ -47,7 +47,7 @@ sub FOREIGNBUILDARGS {
   my $fh = exists $args->{fh_out} ? $args->{fh_out} : \*STDERR;
   return { name   => _short_name( $args->{files}[0] ),
            ETA    => 'linear',
-           count  => 1,#_files_size( $args->{files} ),
+           count  => _files_size( $args->{files} ),
            remove => 1,
            fh     => $fh, };
 }
@@ -77,7 +77,11 @@ sub _files_size {
   my $files = shift;
   my $size  = 0;
   for my $file ( @{$files} ) {
-    $size += ( stat($file) )[$FSIZE];
+    my $s = ( stat($file) )[$FSIZE];
+    if (!defined $s) {
+      return 1;
+    }
+    $size += $s;
   }
   return $size;
 }
