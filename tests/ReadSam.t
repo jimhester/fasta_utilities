@@ -1,6 +1,7 @@
+#!/usr/bin/env perl
+
 use strict;
 use warnings;
-#use Test::Output;
 
 use Test::More;
 use ReadSam;
@@ -58,7 +59,7 @@ done_testing();
 
 sub create_test_files{
   open my $sam, '>', "test.sam";
-  print $sam 
+  print $sam
 '@HD	VN:1.0	SO:coordinate
 @SQ	SN:adapter1	LN:33
 @SQ	SN:adapter2	LN:33
@@ -70,7 +71,7 @@ HWI-ST909:137:C17C3ACXX:7:1101:15263:1988	0	adapter1	1	22	56S33M61S	*	0	0	NTAGTG
   close $sam;
 
   open my $bam, "| samtools view - -S -b -o test.bam";
-print $bam 
+print $bam
 '@HD	VN:1.0	SO:coordinate
 @SQ	SN:adapter1	LN:33
 @SQ	SN:adapter2	LN:33

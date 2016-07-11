@@ -32,7 +32,7 @@ around BUILDARGS => sub {
   my $orig  = shift;
   my $class = shift;
   if ( @_ == 1 && !ref $_[0] ) {
-    return $class->$orig( files => [ $_[0] ] );
+    return $class->$orig(files => [ $_[0] ] );
   }
   else {
     return $class->$orig(@_);
@@ -47,7 +47,7 @@ sub FOREIGNBUILDARGS {
   my $fh = exists $args->{fh_out} ? $args->{fh_out} : \*STDERR;
   return { name   => _short_name( $args->{files}[0] ),
            ETA    => 'linear',
-           count  => 0,#_files_size( $args->{files} ),
+           count  => 1,#_files_size( $args->{files} ),
            remove => 1,
            fh     => $fh, };
 }

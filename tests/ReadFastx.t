@@ -1,3 +1,5 @@
+#!/usr/bin/env perl
+
 use strict;
 use warnings;
 use Test::More;# tests => 16;
@@ -92,7 +94,7 @@ done_testing();
 
 sub create_test_files{
   open my $fasta, '>', "test.fasta";
-  print $fasta 
+  print $fasta
   ">header1
 AGAAAGTATTTAATAGGAACTGTTCGTTGTGACACTATTTGTAATATTAGACGGGAATAGACAAATTTAGAAAAAGGTAA
 TGTACATGTAAGGCACTGATAGAAACTTACGTGGTCAATGTTTAAGCACTGGTAAGATAAAAGATTGGCATAGACGATAA
